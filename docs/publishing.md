@@ -1,5 +1,11 @@
 # Publishing Plugins
 
+This repository is for plugin authors.
+
+- AisOpsFlow Core and Runner images are published only from the private enterprise repository.
+- Community and partner plugins are published by their owners from their own repositories or build pipelines.
+- The Dockerfiles in `examples/node/` are reference packaging examples only.
+
 ## Recommended flow
 
 1. build an OCI image
