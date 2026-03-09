@@ -10,12 +10,13 @@ Public SDK/examples repository for building AisOpsFlow plugins.
 - JS internal auth helper
 - placeholder conformance test area
 
-This repository does not publish any official AisOpsFlow product images.
-The official product images are built only from the private enterprise repository.
+This repository does not publish official product images.
+Public and commercial product images are built from the private enterprise repository.
 
 ## Layout
 
 - `docs/`
+- `deploy/`
 - `examples/node/`
 - `packages/js/internal-auth/`
 - `tests/conformance/`
@@ -30,6 +31,17 @@ The official product images are built only from the private enterprise repositor
 
 The Dockerfiles inside `examples/node/` are example packaging assets for plugin authors.
 They are not an official image release pipeline.
+
+## Public stack
+
+For a real local stack that uses the public compiled Core/Runner images, see:
+
+- `docs/public-quickstart.md`
+- `deploy/docker-compose.public.yml`
+
+The smoke test entrypoint is:
+
+- `scripts/smoke-public-compose.sh`
 
 ## License direction
 

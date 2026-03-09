@@ -1,0 +1,57 @@
+services:
+  core:
+    image: ${AISOPSFLOW_CORE_IMAGE:?set in .env.public}
+    ports:
+      - "8080:8080"
+      - "50051:50051"
+    environment:
+      AISOPSFLOW_DB: /data/aisopsflow.sqlite
+      AISOPSFLOW_BASE_URL: ${AISOPSFLOW_BASE_URL:-http://localhost:8080}
+      AISOPSFLOW_SECRET_KEY: ${AISOPSFLOW_SECRET_KEY:?set in .env.public}
+      AISOPSFLOW_BOOTSTRAP_ADMIN_PASSWORD: ${AISOPSFLOW_BOOTSTRAP_ADMIN_PASSWORD:?set in .env.public}
+      AISOPSFLOW_INTERNAL_AUTH_TOKEN: ${AISOPSFLOW_INTERNAL_AUTH_TOKEN:?set in .env.public}
+      AISOPSFLOW_RUNNER_AUTH_TOKEN: ${AISOPSFLOW_RUNNER_AUTH_TOKEN:?set in .env.public}
+      CORE_GRPC_TLS: "false"
+      CORE_GRPC_PORT: "50051"
+      AISOPSFLOW_RUNNER_BINDINGS: ${AISOPSFLOW_RUNNER_BINDINGS:-t_default:runner-1}
+    volumes:
+      - core_data:/data
+
+  runner:
+    image: ${AISOPSFLOW_RUNNER_IMAGE:?set in .env.public}
+    depends_on:
+      - core
+      - plugin_kakao
+    environment:
+      CORE_GRPC_ENDPOINT: http://core:50051
+      CORE_API_BASE_URL: http://core:8080
+      CORE_RUNNER_AUTH_TOKEN: ${AISOPSFLOW_RUNNER_AUTH_TOKEN:?set in .env.public}
+      AISOPSFLOW_INTERNAL_AUTH_TOKEN: ${AISOPSFLOW_INTERNAL_AUTH_TOKEN:?set in .env.public}
+      TENANT_ID: ${TENANT_ID:-t_default}
+      RUNNER_ID: ${RUNNER_ID:-runner-1}
+      PLUGIN_KAKAO_URL: http://plugin_kakao:9011
+
+  plugin_kakao:
+    build:
+      context: ..
+      dockerfile: examples/node/kakao-provider-mock/Dockerfile
+    image: aisopsflow-plugin-kakao-provider-mock:public
+    depends_on:
+      - kakao_simulator
+    environment:
+      SIMULATOR_URL: http://kakao_simulator:9010
+      AISOPSFLOW_INTERNAL_AUTH_TOKEN: ${AISOPSFLOW_INTERNAL_AUTH_TOKEN:?set in .env.public}
+
+  kakao_simulator:
+    build:
+      context: ..
+      dockerfile: examples/node/kakao-webhook-simulator/Dockerfile
+    image: aisopsflow-plugin-kakao-webhook-simulator:public
+    depends_on:
+      - core
+    environment:
+      CORE_DELIVERY_EVENTS_URL: http://core:8080/api/kakao/delivery-events
+      AISOPSFLOW_INTERNAL_AUTH_TOKEN: ${AISOPSFLOW_INTERNAL_AUTH_TOKEN:?set in .env.public}
+
+volumes:
+  core_data:
