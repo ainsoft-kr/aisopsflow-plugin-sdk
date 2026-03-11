@@ -14,6 +14,10 @@ This repository is for plugin authors.
 4. provide a plugin manifest to the catalog repo
 5. run the conformance test suite
 
+   ```bash
+   scripts/run-conformance.sh
+   ```
+
 ## Recommended manifest fields
 
 - `api_version`

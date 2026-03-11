@@ -10,8 +10,11 @@ required_files=(
   "docs/publishing.md"
   "docs/security-signing.md"
   "packages/js/internal-auth/internal-auth.js"
+  "scripts/run-conformance.sh"
   "scripts/smoke-public-compose.sh"
   "tests/conformance/README.md"
+  "tests/conformance/run.mjs"
+  "tests/conformance/fixtures/channel-fixture.mjs"
 )
 
 for path in "${required_files[@]}"; do
@@ -32,6 +35,8 @@ example_entries=(
 for path in "${example_entries[@]}"; do
   node --check "$path"
 done
+
+node tests/conformance/run.mjs --self-test
 
 if command -v docker >/dev/null 2>&1; then
   docker compose --env-file deploy/.env.public.example -f deploy/docker-compose.public.yml config >/dev/null
