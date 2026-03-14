@@ -1,0 +1,19 @@
+api_version: v1
+plugin_name: db-query-mock
+plugin_version: 0.1.0
+display_name: DB Query Mock
+category: provider
+entrypoints:
+  probe: /probe
+  health: /healthz
+  read: /query/read
+  explain: /query/explain
+compatibility:
+  runner_api: v1
+capabilities:
+  - db.read
+  - db.explain
+  - mock
+security:
+  internal_auth: required
+  read_only_only: true
