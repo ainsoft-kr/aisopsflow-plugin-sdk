@@ -29,6 +29,11 @@ This repository is for plugin authors.
 - `capabilities`
 - `security`
 
+If the product moves to Runner-managed on-demand plugin execution, see:
+
+- `docs/runner-plugin-manifest-v1.md`
+- `docs/runner-plugin-manifest-v1.example.yaml`
+
 ## Do not
 
 - publish mutable tags as the source of truth

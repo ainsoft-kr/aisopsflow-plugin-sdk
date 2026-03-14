@@ -5,6 +5,8 @@ Public SDK/examples repository for building AisOpsFlow plugins.
 ## Includes
 
 - plugin HTTP/JSON contract docs
+- runner-managed plugin manifest draft
+- runner-managed `stdio-json` runtime draft
 - internal auth signing docs
 - first-party Node examples
 - JS internal auth helper

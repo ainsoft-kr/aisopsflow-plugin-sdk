@@ -1,0 +1,48 @@
+api_version: runner-plugin/v1
+kind: RunnerPlugin
+metadata:
+  name: gmail
+  display_name: Gmail
+  plugin_version: 0.1.0
+  publisher: aisopsflow
+runtime:
+  type: node
+  entrypoint: src/runner-entrypoint.js
+  working_dir: .
+  protocol: stdio-json
+install:
+  layout: unpacked-directory
+  root: .
+capabilities:
+  provides:
+    - gmail.read
+    - gmail.send
+execution:
+  startup_timeout_seconds: 10
+  request_timeout_seconds: 30
+  idle_ttl_seconds: 60
+  max_concurrency: 2
+env:
+  required:
+    - name: GMAIL_ACCESS_TOKEN
+      secret: true
+  optional:
+    - name: GMAIL_API_BASE_URL
+      secret: false
+      default: https://gmail.googleapis.com/gmail/v1
+permissions:
+  network:
+    outbound:
+      - host: gmail.googleapis.com
+        ports:
+          - 443
+  filesystem:
+    read: []
+    write: []
+security:
+  verification:
+    internal_auth: false
+compatibility:
+  runner_api:
+    min: v1
+    max: v1

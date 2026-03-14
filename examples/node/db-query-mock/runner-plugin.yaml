@@ -1,0 +1,43 @@
+api_version: runner-plugin/v1
+kind: RunnerPlugin
+metadata:
+  name: db-query-mock
+  display_name: DB Query Mock
+  plugin_version: 0.1.0
+  publisher: aisopsflow
+runtime:
+  type: node
+  entrypoint: src/runner-entrypoint.js
+  working_dir: .
+  protocol: stdio-json
+install:
+  layout: unpacked-directory
+  root: .
+capabilities:
+  provides:
+    - db.read
+    - db.explain
+execution:
+  startup_timeout_seconds: 5
+  request_timeout_seconds: 15
+  idle_ttl_seconds: 30
+  max_concurrency: 1
+env:
+  required: []
+  optional:
+    - name: DB_QUERY_MOCK_MAX_ROWS
+      secret: false
+      default: "200"
+permissions:
+  network:
+    outbound: []
+  filesystem:
+    read: []
+    write: []
+security:
+  verification:
+    internal_auth: false
+compatibility:
+  runner_api:
+    min: v1
+    max: v1
