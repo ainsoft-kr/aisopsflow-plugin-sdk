@@ -26,6 +26,10 @@ Public and commercial product images are built from the private enterprise repos
 - `slack/`
 - `email/`
 - `telegram/`
+- `gmail/`
+- `microsoft-email/`
+- `microsoft-office/`
+- `db-query-mock/`
 - `kakao-provider-mock/`
 - `kakao-webhook-simulator/`
 
