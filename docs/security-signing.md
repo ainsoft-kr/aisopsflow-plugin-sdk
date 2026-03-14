@@ -25,4 +25,4 @@ Signature input should be derived from:
 ## Reference helper
 
 JS helper:
-- `packages/js/internal-auth/internal-auth.js`
+- `packages/js/internal-auth/internal-auth.ts`

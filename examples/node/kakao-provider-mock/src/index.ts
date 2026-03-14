@@ -2,7 +2,7 @@ import express from 'express';
 import bodyParser from 'body-parser';
 import fetch from 'node-fetch';
 import { v4 as uuidv4 } from 'uuid';
-import { requireInternalAuthJson, signedInternalHeaders } from '../shared/internal-auth.js';
+import { requireInternalAuthJson, signedInternalHeaders } from '../shared/internal-auth.ts';
 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 9011;
 const SIMULATOR_URL = process.env.SIMULATOR_URL || 'http://kakao_simulator:9010';

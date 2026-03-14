@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 
-import { signedInternalHeaders } from '../../packages/js/internal-auth/internal-auth.js';
+import { signedInternalHeaders } from '../../packages/js/internal-auth/internal-auth.ts';
 import { startChannelFixtureServer } from './fixtures/channel-fixture.mjs';
 
 function parseArgs(argv) {

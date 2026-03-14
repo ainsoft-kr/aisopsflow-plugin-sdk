@@ -1,7 +1,7 @@
 import http from 'node:http';
 import { URL } from 'node:url';
 
-import { constantTimeEquals, renderInternalSignature } from '../../../packages/js/internal-auth/internal-auth.js';
+import { constantTimeEquals, renderInternalSignature } from '../../../packages/js/internal-auth/internal-auth.ts';
 
 function json(res, statusCode, payload) {
   const bodyText = JSON.stringify(payload);

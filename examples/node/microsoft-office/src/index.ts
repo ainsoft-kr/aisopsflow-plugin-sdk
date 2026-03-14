@@ -1,7 +1,7 @@
 import express from 'express';
 import bodyParser from 'body-parser';
 import fetch from 'node-fetch';
-import { requireInternalAuthJson } from '../shared/internal-auth.js';
+import { requireInternalAuthJson } from '../shared/internal-auth.ts';
 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 9007;
 const INTERNAL_AUTH_TOKEN = process.env.AISOPSFLOW_INTERNAL_AUTH_TOKEN || process.env.INTERNAL_AUTH_TOKEN || '';

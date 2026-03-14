@@ -1,5 +1,5 @@
 import fetch from 'node-fetch';
-import { startStdioJsonRuntime } from '../../../../packages/js/runner-plugin-runtime/index.js';
+import { startStdioJsonRuntime } from '../../../../packages/js/runner-plugin-runtime/index.ts';
 
 const GMAIL_ACCESS_TOKEN = process.env.GMAIL_ACCESS_TOKEN || '';
 const GMAIL_API_BASE_URL = process.env.GMAIL_API_BASE_URL || 'https://gmail.googleapis.com/gmail/v1';

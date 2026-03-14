@@ -1,7 +1,7 @@
 import express from 'express';
 import bodyParser from 'body-parser';
 import fetch from 'node-fetch';
-import { requireInternalAuthJson, signedInternalHeaders } from '../shared/internal-auth.js';
+import { requireInternalAuthJson, signedInternalHeaders } from '../shared/internal-auth.ts';
 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 9010;
 const CORE_DELIVERY_EVENTS_URL = process.env.CORE_DELIVERY_EVENTS_URL || 'http://core:8080/api/kakao/delivery-events';

@@ -2,7 +2,7 @@ import express from 'express';
 import bodyParser from 'body-parser';
 import fetch from 'node-fetch';
 import crypto from 'crypto';
-import { constantTimeEquals, requireInternalAuthJson, signedInternalHeaders } from '../shared/internal-auth.js';
+import { constantTimeEquals, requireInternalAuthJson, signedInternalHeaders } from '../shared/internal-auth.ts';
 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 9000;
 const CORE_BASE_URL = process.env.CORE_BASE_URL || 'http://core:8080';

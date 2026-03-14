@@ -1,7 +1,7 @@
 import express from 'express';
 import bodyParser from 'body-parser';
 import nodemailer from 'nodemailer';
-import { requireInternalAuthJson } from '../shared/internal-auth.js';
+import { requireInternalAuthJson } from '../shared/internal-auth.ts';
 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 9001;
 

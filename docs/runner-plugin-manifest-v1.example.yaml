@@ -9,7 +9,7 @@ metadata:
   homepage: https://github.com/your-org/aisopsflow-plugin-microsoft-email
 runtime:
   type: node
-  entrypoint: src/index.js
+  entrypoint: src/runner-entrypoint.ts
   working_dir: .
   protocol: stdio-json
 install:

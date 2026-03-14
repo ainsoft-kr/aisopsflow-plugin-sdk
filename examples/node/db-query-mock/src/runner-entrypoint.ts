@@ -1,4 +1,4 @@
-import { startStdioJsonRuntime } from '../../../../packages/js/runner-plugin-runtime/index.js';
+import { startStdioJsonRuntime } from '../../../../packages/js/runner-plugin-runtime/index.ts';
 
 const MAX_ROWS = process.env.DB_QUERY_MOCK_MAX_ROWS ? Number(process.env.DB_QUERY_MOCK_MAX_ROWS) : 200;
 
