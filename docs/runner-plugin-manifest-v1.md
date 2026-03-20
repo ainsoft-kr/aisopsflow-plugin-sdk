@@ -108,6 +108,51 @@ capabilities:
     - gmail.send
 ```
 
+#### Capability naming guidance
+
+Use capability names that make the plugin role obvious.
+
+There are two broad classes:
+
+- channel plugins
+- provider plugins
+
+Channel plugins are used to deliver messages or handle channel-specific interaction.
+
+Examples:
+
+- `slack.send`
+- `slack.approval`
+- `email.send`
+- `telegram.send`
+
+Provider plugins expose domain-specific service operations.
+
+Examples:
+
+- `gmail.read`
+- `gmail.send`
+- `microsoft.mail.read`
+- `microsoft.mail.send`
+- `microsoft.office.read`
+- `microsoft.office.write`
+- `db.read`
+- `db.explain`
+
+Recommended rules:
+
+- use `service.action` ordering, not `action.service`
+- keep channel plugins generic and notification-oriented
+- keep provider plugins service-specific
+- do not reuse a generic channel capability for a provider plugin
+
+For example:
+
+- `email.send` should describe a generic outbound email channel plugin
+- `gmail.send` should describe a Gmail provider plugin
+
+Those may both send email, but they serve different roles in the system and should not share the same capability name.
+
 ### `execution`
 
 Defines lifecycle and scheduling limits.

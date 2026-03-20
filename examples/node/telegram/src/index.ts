@@ -15,7 +15,7 @@ const captureRawBody = (req, _res, buf) => {
 app.use(bodyParser.json({ type: '*/*', limit: BODY_LIMIT, verify: captureRawBody }));
 
 app.post('/probe', (_req, res) => {
-  res.json({ ok: true, name: 'channel-telegram', version: '0.1.0', capabilities: ['send.telegram'] });
+  res.json({ ok: true, name: 'channel-telegram', version: '0.1.0', capabilities: ['telegram.send'] });
 });
 
 // Core -> Telegram: { chat_id, text }

@@ -16,7 +16,7 @@ const captureRawBody = (req, _res, buf) => {
 app.use(bodyParser.json({ type: '*/*', limit: BODY_LIMIT, verify: captureRawBody }));
 
 app.post('/probe', (_req, res) => {
-  res.json({ ok: true, name: 'microsoft-email', version: '0.1.0', capabilities: ['microsoft.mail.read', 'microsoft.mail.send', 'email.read', 'email.send'] });
+  res.json({ ok: true, name: 'microsoft-email', version: '0.1.0', capabilities: ['microsoft.mail.read', 'microsoft.mail.send'] });
 });
 
 app.get('/healthz', (_req, res) => {

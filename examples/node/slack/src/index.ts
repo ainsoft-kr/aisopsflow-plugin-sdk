@@ -23,7 +23,7 @@ app.use('/slack/events', bodyParser.json({ type: '*/*', verify: captureRawBody, 
 app.use('/send', bodyParser.json({ type: '*/*', verify: captureRawBody, limit: BODY_LIMIT }));
 
 app.post('/probe', async (_req, res) => {
-  res.json({ ok: true, name: 'channel-slack', version: '0.1.0', capabilities: ['send.slack', 'approval.slack'] });
+  res.json({ ok: true, name: 'channel-slack', version: '0.1.0', capabilities: ['slack.send', 'slack.approval'] });
 });
 
 // Core -> Slack: send message.

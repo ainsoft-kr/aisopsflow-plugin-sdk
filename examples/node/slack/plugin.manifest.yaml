@@ -1,15 +1,15 @@
 api_version: v1
-plugin_name: gmail
+plugin_name: channel-slack
 plugin_version: 0.1.0
-display_name: Gmail Plugin
-category: provider
+display_name: Slack Channel Plugin
+category: channel
 entrypoints:
   invoke: stdio-json
 compatibility:
   runner_api: v1
 capabilities:
-  - gmail.read
-  - gmail.send
+  - slack.send
+  - slack.approval
 security:
   internal_auth: required
-  oauth_access_token: required
+  provider_secret: required

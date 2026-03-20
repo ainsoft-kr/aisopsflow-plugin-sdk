@@ -4,18 +4,12 @@ plugin_version: 0.1.0
 display_name: Microsoft Email Plugin
 category: provider
 entrypoints:
-  probe: /probe
-  health: /healthz
-  list_messages: /mail/messages/list
-  get_message: /mail/messages/get
-  send_message: /mail/messages/send
+  invoke: stdio-json
 compatibility:
   runner_api: v1
 capabilities:
   - microsoft.mail.read
   - microsoft.mail.send
-  - email.read
-  - email.send
 security:
   internal_auth: required
   oauth_access_token: required

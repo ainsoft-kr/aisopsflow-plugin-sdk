@@ -26,7 +26,7 @@ const captureRawBody = (req, _res, buf) => {
 app.use(bodyParser.json({ type: '*/*', limit: BODY_LIMIT, verify: captureRawBody }));
 
 app.post('/probe', (_req, res) => {
-  res.json({ ok: true, name: 'channel-email', version: '0.1.0', capabilities: ['send.email'] });
+  res.json({ ok: true, name: 'channel-email', version: '0.1.0', capabilities: ['email.send'] });
 });
 
 // Core -> Email: { to, subject, text }

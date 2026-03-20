@@ -1,14 +1,13 @@
 api_version: v1
-plugin_name: db-query-mock
+plugin_name: kakao-provider-mock
 plugin_version: 0.1.0
-display_name: DB Query Mock
+display_name: Kakao AlimTalk Provider Mock
 category: provider
 entrypoints:
   invoke: stdio-json
 compatibility:
   runner_api: v1
 capabilities:
-  - db.read
-  - db.explain
+  - kakao.alimtalk.send
 security:
-  internal_auth: disabled
+  internal_auth: required

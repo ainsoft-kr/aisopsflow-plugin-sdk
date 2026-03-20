@@ -1,0 +1,52 @@
+api_version: runner-plugin/v1
+kind: RunnerPlugin
+metadata:
+  name: channel-slack
+  display_name: Slack Channel
+  plugin_version: 0.1.0
+  publisher: aisopsflow
+runtime:
+  type: node
+  entrypoint: src/runner-entrypoint.ts
+  working_dir: .
+  protocol: stdio-json
+install:
+  layout: unpacked-directory
+  root: .
+capabilities:
+  provides:
+    - slack.send
+    - slack.approval
+execution:
+  startup_timeout_seconds: 10
+  request_timeout_seconds: 30
+  idle_ttl_seconds: 60
+  max_concurrency: 2
+env:
+  required:
+    - name: AISOPSFLOW_INTERNAL_AUTH_TOKEN
+      secret: true
+    - name: SLACK_BOT_TOKEN
+      secret: true
+  optional:
+    - name: CORE_BASE_URL
+      secret: false
+      default: http://core:8080
+    - name: SLACK_SIGNING_SECRET
+      secret: true
+permissions:
+  network:
+    outbound:
+      - host: slack.com
+        ports:
+          - 443
+  filesystem:
+    read: []
+    write: []
+security:
+  verification:
+    internal_auth: true
+compatibility:
+  runner_api:
+    min: v1
+    max: v1
