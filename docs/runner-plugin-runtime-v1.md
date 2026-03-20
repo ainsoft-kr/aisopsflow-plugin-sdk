@@ -60,7 +60,7 @@ This keeps the runtime simple and language-neutral.
   "id": "req-1",
   "ok": true,
   "result": {
-    "name": "db-query-mock",
+    "name": "db-query",
     "version": "0.1.0",
     "capabilities": ["db.read", "db.explain"]
   }
@@ -137,7 +137,7 @@ Runner should:
 Reference files in this repository:
 
 - `packages/js/runner-plugin-runtime/index.ts`
-- `examples/node/db-query-mock/runner-plugin.yaml`
-- `examples/node/db-query-mock/src/runner-entrypoint.ts`
+- `examples/node/db-query/runner-plugin.yaml`
+- `examples/node/db-query/src/runner-entrypoint.ts`
 - `examples/node/gmail/runner-plugin.yaml`
 - `examples/node/gmail/src/runner-entrypoint.ts`

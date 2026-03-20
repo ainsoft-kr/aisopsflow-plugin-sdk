@@ -1,7 +1,7 @@
 api_version: v1
-plugin_name: db-query-mock
-plugin_version: 0.1.0
-display_name: DB Query Mock
+plugin_name: db-query
+plugin_version: 0.2.0
+display_name: DB Query
 category: provider
 entrypoints:
   invoke: stdio-json

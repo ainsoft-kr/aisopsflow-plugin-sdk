@@ -1,9 +1,9 @@
 api_version: runner-plugin/v1
 kind: RunnerPlugin
 metadata:
-  name: kakao-provider-mock
-  display_name: Kakao AlimTalk Provider Mock
-  plugin_version: 0.1.0
+  name: db-query
+  display_name: DB Query
+  plugin_version: 0.2.0
   publisher: aisopsflow
 runtime:
   type: node
@@ -15,32 +15,35 @@ install:
   root: .
 capabilities:
   provides:
-    - kakao.alimtalk.send
+    - db.read
+    - db.explain
 execution:
-  startup_timeout_seconds: 10
-  request_timeout_seconds: 30
-  idle_ttl_seconds: 60
-  max_concurrency: 2
+  startup_timeout_seconds: 5
+  request_timeout_seconds: 15
+  idle_ttl_seconds: 30
+  max_concurrency: 1
 env:
   required:
-    - name: AISOPSFLOW_INTERNAL_AUTH_TOKEN
+    - name: DB_QUERY_DATASOURCES_JSON
       secret: true
   optional:
-    - name: SIMULATOR_URL
+    - name: DB_QUERY_MAX_ROWS
       secret: false
-      default: http://kakao_simulator:9010
+      default: "200"
+    - name: DB_QUERY_DEFAULT_TIMEOUT_SECONDS
+      secret: false
+      default: "15"
 permissions:
   network:
     outbound:
-      - host: kakao_simulator
-        ports:
-          - 9010
+      - mysql
+      - postgres
   filesystem:
     read: []
     write: []
 security:
   verification:
-    internal_auth: true
+    internal_auth: false
 compatibility:
   runner_api:
     min: v1

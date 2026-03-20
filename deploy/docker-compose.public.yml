@@ -34,13 +34,11 @@ services:
   plugin_kakao:
     build:
       context: ..
-      dockerfile: examples/node/kakao-provider-mock/Dockerfile
-    image: aisopsflow-plugin-kakao-provider-mock:public
-    depends_on:
-      - kakao_simulator
+      dockerfile: examples/node/kakao-provider/Dockerfile
+    image: aisopsflow-plugin-kakao-provider:public
     environment:
-      SIMULATOR_URL: http://kakao_simulator:9010
-      AISOPSFLOW_INTERNAL_AUTH_TOKEN: ${AISOPSFLOW_INTERNAL_AUTH_TOKEN:?set in .env.public}
+      KAKAO_BIZ_PROVIDERS_JSON: |
+        {"provider-default":{"base_url":"https://bizmsg-web.kakaoenterprise.com","access_token":"replace-me","sender_key":"replace-me","sender_no":"01000000000","templates":{"ops_alert_v1":{"template_code":"replace-me","message":"Alert: {{message}}"}}}}
 
   kakao_simulator:
     build:

@@ -35,11 +35,11 @@ done
 
 example_entries=(
   "examples/node/email/src/index.ts"
-  "examples/node/kakao-provider-mock/src/index.ts"
+  "examples/node/kakao-provider/src/index.ts"
   "examples/node/kakao-webhook-simulator/src/index.ts"
   "examples/node/slack/src/index.ts"
   "examples/node/telegram/src/index.ts"
-  "examples/node/db-query-mock/src/runner-entrypoint.ts"
+  "examples/node/db-query/src/runner-entrypoint.ts"
   "examples/node/gmail/src/runner-entrypoint.ts"
 )
 

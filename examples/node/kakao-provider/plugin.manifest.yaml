@@ -1,7 +1,7 @@
 api_version: v1
-plugin_name: kakao-provider-mock
-plugin_version: 0.1.0
-display_name: Kakao AlimTalk Provider Mock
+plugin_name: kakao-provider
+plugin_version: 0.2.0
+display_name: Kakao AlimTalk Provider
 category: provider
 entrypoints:
   invoke: stdio-json
@@ -10,4 +10,4 @@ compatibility:
 capabilities:
   - kakao.alimtalk.send
 security:
-  internal_auth: required
+  internal_auth: disabled

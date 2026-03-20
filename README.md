@@ -31,8 +31,8 @@ Public and commercial product images are built from the private enterprise repos
 - `gmail/`
 - `microsoft-email/`
 - `microsoft-office/`
-- `db-query-mock/`
-- `kakao-provider-mock/`
+- `db-query/`
+- `kakao-provider/`
 - `kakao-webhook-simulator/`
 
 The Dockerfiles inside `examples/node/` are example packaging assets for plugin authors.
