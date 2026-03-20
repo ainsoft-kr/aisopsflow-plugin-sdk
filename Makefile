@@ -42,49 +42,49 @@ push-all: \
 	push-db-query
 
 build-channel-slack:
-	docker build -f examples/node/slack/Dockerfile -t $(REGISTRY)/$(IMAGE_NAMESPACE)/channel-slack:latest .
+	docker build -f plugins/official/channel-slack/Dockerfile -t $(REGISTRY)/$(IMAGE_NAMESPACE)/channel-slack:latest .
 
 push-channel-slack: build-channel-slack
 	docker push $(REGISTRY)/$(IMAGE_NAMESPACE)/channel-slack:latest
 
 build-channel-email:
-	docker build -f examples/node/email/Dockerfile -t $(REGISTRY)/$(IMAGE_NAMESPACE)/channel-email:latest .
+	docker build -f plugins/official/channel-email/Dockerfile -t $(REGISTRY)/$(IMAGE_NAMESPACE)/channel-email:latest .
 
 push-channel-email: build-channel-email
 	docker push $(REGISTRY)/$(IMAGE_NAMESPACE)/channel-email:latest
 
 build-channel-telegram:
-	docker build -f examples/node/telegram/Dockerfile -t $(REGISTRY)/$(IMAGE_NAMESPACE)/channel-telegram:latest .
+	docker build -f plugins/official/channel-telegram/Dockerfile -t $(REGISTRY)/$(IMAGE_NAMESPACE)/channel-telegram:latest .
 
 push-channel-telegram: build-channel-telegram
 	docker push $(REGISTRY)/$(IMAGE_NAMESPACE)/channel-telegram:latest
 
 build-kakao-provider:
-	docker build -f examples/node/kakao-provider/Dockerfile -t $(REGISTRY)/$(IMAGE_NAMESPACE)/kakao-provider:latest .
+	docker build -f plugins/official/kakao-provider/Dockerfile -t $(REGISTRY)/$(IMAGE_NAMESPACE)/kakao-provider:latest .
 
 push-kakao-provider: build-kakao-provider
 	docker push $(REGISTRY)/$(IMAGE_NAMESPACE)/kakao-provider:latest
 
 build-gmail:
-	docker build -f examples/node/gmail/Dockerfile -t $(REGISTRY)/$(IMAGE_NAMESPACE)/gmail:latest .
+	docker build -f plugins/official/gmail/Dockerfile -t $(REGISTRY)/$(IMAGE_NAMESPACE)/gmail:latest .
 
 push-gmail: build-gmail
 	docker push $(REGISTRY)/$(IMAGE_NAMESPACE)/gmail:latest
 
 build-microsoft-email:
-	docker build -f examples/node/microsoft-email/Dockerfile -t $(REGISTRY)/$(IMAGE_NAMESPACE)/microsoft-email:latest .
+	docker build -f plugins/official/microsoft-email/Dockerfile -t $(REGISTRY)/$(IMAGE_NAMESPACE)/microsoft-email:latest .
 
 push-microsoft-email: build-microsoft-email
 	docker push $(REGISTRY)/$(IMAGE_NAMESPACE)/microsoft-email:latest
 
 build-microsoft-office:
-	docker build -f examples/node/microsoft-office/Dockerfile -t $(REGISTRY)/$(IMAGE_NAMESPACE)/microsoft-office:latest .
+	docker build -f plugins/official/microsoft-office/Dockerfile -t $(REGISTRY)/$(IMAGE_NAMESPACE)/microsoft-office:latest .
 
 push-microsoft-office: build-microsoft-office
 	docker push $(REGISTRY)/$(IMAGE_NAMESPACE)/microsoft-office:latest
 
 build-db-query:
-	docker build -f examples/node/db-query/Dockerfile -t $(REGISTRY)/$(IMAGE_NAMESPACE)/db-query:latest .
+	docker build -f plugins/official/db-query/Dockerfile -t $(REGISTRY)/$(IMAGE_NAMESPACE)/db-query:latest .
 
 push-db-query: build-db-query
 	docker push $(REGISTRY)/$(IMAGE_NAMESPACE)/db-query:latest

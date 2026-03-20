@@ -1,7 +1,3 @@
-import mysql from 'mysql2/promise';
-import pg from 'pg';
-
-const { Client: PgClient } = pg;
 const MAX_ROWS = process.env.DB_QUERY_MAX_ROWS ? Number(process.env.DB_QUERY_MAX_ROWS) : 200;
 const DEFAULT_TIMEOUT_SECONDS = process.env.DB_QUERY_DEFAULT_TIMEOUT_SECONDS
   ? Number(process.env.DB_QUERY_DEFAULT_TIMEOUT_SECONDS)
@@ -53,6 +49,8 @@ function resolveDatasource(datasource: string, driver: string) {
 
 async function runRead(ds: any, req: any) {
   if (ds.driver === 'postgres') {
+    const pg = await import('pg');
+    const PgClient = pg.Client;
     const client = new PgClient({
       connectionString: ds.url,
       statement_timeout: req.timeoutSeconds * 1000,
@@ -75,6 +73,7 @@ async function runRead(ds: any, req: any) {
     }
   }
 
+  const mysql = await import('mysql2/promise');
   const connection = await mysql.createConnection({
     uri: ds.url,
     connectTimeout: req.timeoutSeconds * 1000
@@ -101,6 +100,8 @@ async function runRead(ds: any, req: any) {
 async function runExplain(ds: any, req: any) {
   const explainSql = `EXPLAIN ${req.statement}`;
   if (ds.driver === 'postgres') {
+    const pg = await import('pg');
+    const PgClient = pg.Client;
     const client = new PgClient({
       connectionString: ds.url,
       statement_timeout: req.timeoutSeconds * 1000,
@@ -123,6 +124,7 @@ async function runExplain(ds: any, req: any) {
     }
   }
 
+  const mysql = await import('mysql2/promise');
   const connection = await mysql.createConnection({
     uri: ds.url,
     connectTimeout: req.timeoutSeconds * 1000

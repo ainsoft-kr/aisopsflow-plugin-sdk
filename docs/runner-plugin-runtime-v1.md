@@ -137,7 +137,7 @@ Runner should:
 Reference files in this repository:
 
 - `packages/js/runner-plugin-runtime/index.ts`
-- `examples/node/db-query/runner-plugin.yaml`
-- `examples/node/db-query/src/runner-entrypoint.ts`
-- `examples/node/gmail/runner-plugin.yaml`
-- `examples/node/gmail/src/runner-entrypoint.ts`
+- `plugins/official/db-query/runner-plugin.yaml`
+- `plugins/official/db-query/src/runner-entrypoint.ts`
+- `plugins/official/gmail/runner-plugin.yaml`
+- `plugins/official/gmail/src/runner-entrypoint.ts`

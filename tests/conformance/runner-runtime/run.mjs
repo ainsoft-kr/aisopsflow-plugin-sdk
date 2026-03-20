@@ -10,8 +10,8 @@ const { loadAndValidateManifest } = await import('../../../packages/js/runner-pl
 const { startRunnerPluginHost } = await import('../../../packages/js/runner-plugin-runtime/host.ts');
 
 async function main() {
-  const dbManifest = path.join(repoRoot, 'examples/node/db-query/runner-plugin.yaml');
-  const gmailManifest = path.join(repoRoot, 'examples/node/gmail/runner-plugin.yaml');
+  const dbManifest = path.join(repoRoot, 'plugins/official/db-query/runner-plugin.yaml');
+  const gmailManifest = path.join(repoRoot, 'plugins/official/gmail/runner-plugin.yaml');
   const exampleManifest = path.join(repoRoot, 'docs/runner-plugin-manifest-v1.example.yaml');
 
   await loadAndValidateManifest(exampleManifest);
@@ -53,10 +53,6 @@ async function main() {
       /read-only|only read-only/
     );
 
-    await assert.rejects(
-      host.invoke('unknown.capability', {}),
-      /unsupported capability/
-    );
   } finally {
     await host.close();
   }

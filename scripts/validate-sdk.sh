@@ -34,13 +34,13 @@ for path in "${required_files[@]}"; do
 done
 
 example_entries=(
-  "examples/node/email/src/index.ts"
-  "examples/node/kakao-provider/src/index.ts"
+  "plugins/official/channel-email/src/index.ts"
+  "plugins/official/kakao-provider/src/index.ts"
   "examples/node/kakao-webhook-simulator/src/index.ts"
-  "examples/node/slack/src/index.ts"
-  "examples/node/telegram/src/index.ts"
-  "examples/node/db-query/src/runner-entrypoint.ts"
-  "examples/node/gmail/src/runner-entrypoint.ts"
+  "plugins/official/channel-slack/src/index.ts"
+  "plugins/official/channel-telegram/src/index.ts"
+  "plugins/official/db-query/src/runner-entrypoint.ts"
+  "plugins/official/gmail/src/runner-entrypoint.ts"
 )
 
 for path in "${example_entries[@]}"; do

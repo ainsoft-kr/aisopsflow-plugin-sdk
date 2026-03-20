@@ -34,7 +34,7 @@ services:
   plugin_kakao:
     build:
       context: ..
-      dockerfile: examples/node/kakao-provider/Dockerfile
+      dockerfile: plugins/official/kakao-provider/Dockerfile
     image: aisopsflow-plugin-kakao-provider:public
     environment:
       KAKAO_BIZ_PROVIDERS_JSON: |
