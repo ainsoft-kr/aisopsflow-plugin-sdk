@@ -45,6 +45,24 @@ These are the plugin packages targeted by:
 - OCI image publishing
 - conformance validation
 
+## Official Release Flow
+
+1. Implement or update the plugin under `plugins/official/<plugin-name>/`
+2. Run local validation:
+   - `bash scripts/validate-sdk.sh`
+3. Build OCI images:
+   - `make build-all`
+   - or `make build-<plugin-name>`
+4. Authenticate to GHCR using release env settings:
+   - `make ghcr-login`
+5. Push official images:
+   - `make push-all`
+   - or `make push-<plugin-name>`
+6. Update catalog entries to the published image reference
+7. Update Runner runtime config to reference the published plugin image
+
+`deploy/.env.release` is intentionally ignored and should only contain local release credentials.
+
 ## Examples And Fixtures
 
 - `kakao-webhook-simulator/`
