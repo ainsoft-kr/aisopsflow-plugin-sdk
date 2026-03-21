@@ -1,0 +1,46 @@
+api_version: runner-plugin/v1
+kind: RunnerPlugin
+metadata:
+  name: internal-approval
+  display_name: Internal Approval
+  plugin_version: 0.1.0
+  publisher: aisopsflow
+runtime:
+  type: node
+  entrypoint: src/runner-entrypoint.ts
+  working_dir: .
+  protocol: stdio-json
+install:
+  layout: unpacked-directory
+  root: .
+capabilities:
+  provides:
+    - approval.wait
+execution:
+  startup_timeout_seconds: 5
+  request_timeout_seconds: 1800
+  idle_ttl_seconds: 30
+  max_concurrency: 2
+env:
+  required:
+    - name: AISOPSFLOW_INTERNAL_AUTH_TOKEN
+      secret: true
+    - name: CORE_API_BASE_URL
+      secret: false
+    - name: SLACK_BOT_TOKEN
+      secret: true
+permissions:
+  network:
+    outbound:
+      - core
+      - slack.com
+  filesystem:
+    read: []
+    write: []
+security:
+  verification:
+    internal_auth: true
+compatibility:
+  runner_api:
+    min: v1
+    max: v1

@@ -1,0 +1,16 @@
+{
+  "name": "aisopsflow-plugin-microsoft-office",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/runner-entrypoint.ts",
+  "scripts": {
+    "start": "tsx src/runner-entrypoint.ts"
+  },
+  "dependencies": {
+    "docx": "^9.1.1",
+    "exceljs": "^4.4.0",
+    "pptxgenjs": "^3.12.0",
+    "tsx": "^4.20.3"
+  }
+}

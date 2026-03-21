@@ -23,20 +23,23 @@ This repository contains both:
 - `docs/`
 - `deploy/`
 - `plugins/official/`
+- `plugins/official/channel/`
+- `plugins/official/provider/`
 - `examples/node/`
 - `packages/js/internal-auth/`
 - `tests/conformance/`
 
 ## Official Plugins
 
-- `channel-slack/`
-- `channel-email/`
-- `channel-telegram/`
-- `kakao-provider/`
-- `db-query/`
-- `gmail/`
-- `microsoft-email/`
-- `microsoft-office/`
+- `channel/slack/`
+- `channel/email/`
+- `channel/telegram/`
+- `channel/kakao/`
+- `provider/gmail/`
+- `provider/microsoft-email/`
+- `provider/db-query/`
+- `provider/microsoft-office/` local Excel, Word, and PowerPoint generation
+- `provider/microsoft-office-graph/` Microsoft Graph drive adapter
 
 These are the plugin packages targeted by:
 
@@ -47,19 +50,32 @@ These are the plugin packages targeted by:
 
 ## Official Release Flow
 
-1. Implement or update the plugin under `plugins/official/<plugin-name>/`
+1. Implement or update the plugin under the matching category path such as `plugins/official/channel/<plugin-name>/` or `plugins/official/provider/<plugin-name>/`
 2. Run local validation:
    - `bash scripts/validate-sdk.sh`
 3. Build OCI images:
    - `make build-all`
    - or `make build-<plugin-name>`
+   - or `make plugin TARGET=<plugin-name> CATEGORY=<channel|provider> CMD=build`
 4. Authenticate to GHCR using release env settings:
    - `make ghcr-login`
 5. Push official images:
    - `make push-all`
    - or `make push-<plugin-name>`
-6. Update catalog entries to the published image reference
-7. Update Runner runtime config to reference the published plugin image
+   - or `make plugin TARGET=<plugin-name> CATEGORY=<channel|provider> CMD=push`
+6. Delete published GHCR packages when cleanup is needed:
+   - `make delete-all`
+   - or `make delete-<plugin-name> VERSION=<tag>`
+   - or `make plugin TARGET=<plugin-name> CATEGORY=<channel|provider> CMD=delete VERSION=<tag>`
+   - use `VERSION=all` to delete the whole package instead of a tagged version
+   - requires `gh` CLI and `GHCR_TOKEN` with package delete permission
+7. Update catalog entries to the published image reference
+8. Update Runner runtime config to reference the published plugin image
+
+Published image paths are category-scoped:
+
+- `$(REGISTRY)/$(IMAGE_NAMESPACE)/channel/<plugin>:latest`
+- `$(REGISTRY)/$(IMAGE_NAMESPACE)/provider/<plugin>:latest`
 
 `deploy/.env.release` is intentionally ignored and should only contain local release credentials.
 

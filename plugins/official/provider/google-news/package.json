@@ -1,0 +1,15 @@
+{
+  "name": "aisopsflow-plugin-google-news",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/runner-entrypoint.ts",
+  "scripts": {
+    "start": "tsx src/runner-entrypoint.ts"
+  },
+  "dependencies": {
+    "fast-xml-parser": "^4.5.3",
+    "node-fetch": "^3.3.2",
+    "tsx": "^4.20.3"
+  }
+}

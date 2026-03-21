@@ -1,0 +1,51 @@
+api_version: runner-plugin/v1
+kind: RunnerPlugin
+metadata:
+  name: db-query
+  display_name: DB Query
+  plugin_version: 0.2.0
+  publisher: aisopsflow
+runtime:
+  type: node
+  entrypoint: src/runner-entrypoint.ts
+  working_dir: .
+  protocol: stdio-json
+install:
+  layout: unpacked-directory
+  root: .
+capabilities:
+  provides:
+    - db.query
+    - db.read
+    - db.explain
+execution:
+  startup_timeout_seconds: 5
+  request_timeout_seconds: 15
+  idle_ttl_seconds: 30
+  max_concurrency: 1
+env:
+  required:
+    - name: DB_QUERY_DATASOURCES_JSON
+      secret: true
+  optional:
+    - name: DB_QUERY_MAX_ROWS
+      secret: false
+      default: "200"
+    - name: DB_QUERY_DEFAULT_TIMEOUT_SECONDS
+      secret: false
+      default: "15"
+permissions:
+  network:
+    outbound:
+      - mysql
+      - postgres
+  filesystem:
+    read: []
+    write: []
+security:
+  verification:
+    internal_auth: false
+compatibility:
+  runner_api:
+    min: v1
+    max: v1

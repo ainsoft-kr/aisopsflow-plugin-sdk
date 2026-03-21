@@ -1,0 +1,44 @@
+api_version: runner-plugin/v1
+kind: RunnerPlugin
+metadata:
+  name: command-exec
+  display_name: Command Exec
+  plugin_version: 0.1.0
+  publisher: aisopsflow
+runtime:
+  type: node
+  entrypoint: src/runner-entrypoint.ts
+  working_dir: .
+  protocol: stdio-json
+install:
+  layout: unpacked-directory
+  root: .
+capabilities:
+  provides:
+    - shell.exec
+execution:
+  startup_timeout_seconds: 5
+  request_timeout_seconds: 300
+  idle_ttl_seconds: 30
+  max_concurrency: 2
+env:
+  required:
+    - name: AISOPSFLOW_INTERNAL_AUTH_TOKEN
+      secret: true
+permissions:
+  network:
+    outbound: []
+  filesystem:
+    read:
+      - /tmp
+      - /app/workspace
+    write:
+      - /tmp
+      - /app/workspace
+security:
+  verification:
+    internal_auth: true
+compatibility:
+  runner_api:
+    min: v1
+    max: v1

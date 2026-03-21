@@ -1,28 +1,11 @@
 REGISTRY ?= ghcr.io
-IMAGE_NAMESPACE ?= ainsoft-kr
+IMAGE_NAMESPACE ?= ainsoft-kr/aisopsflow/plugin
 RELEASE_ENV_FILE ?= deploy/.env.release
+GH_PACKAGE_API_SCOPE ?= orgs
 
-PLUGINS = channel-slack channel-email channel-telegram kakao-provider gmail microsoft-email microsoft-office db-query
+PLUGINS = channel-slack channel-email channel-telegram kakao-provider gmail microsoft-email microsoft-office microsoft-office-graph db-query http-client command-exec internal-approval weather-openmeteo google-news
 
-.PHONY: build-all push-all \
-	build-channel-slack push-channel-slack \
-	build-channel-email push-channel-email \
-	build-channel-telegram push-channel-telegram \
-	build-kakao-provider push-kakao-provider \
-	build-gmail push-gmail \
-	build-microsoft-email push-microsoft-email \
-	build-microsoft-office push-microsoft-office \
-	build-db-query push-db-query
-
-build-all: \
-	build-channel-slack \
-	build-channel-email \
-	build-channel-telegram \
-	build-kakao-provider \
-	build-gmail \
-	build-microsoft-email \
-	build-microsoft-office \
-	build-db-query
+.PHONY: build-all push-all delete-all plugin ghcr-login build-% push-% delete-%
 
 ghcr-login:
 	@bash -lc 'set -a; source "$(RELEASE_ENV_FILE)"; set +a; \
@@ -31,60 +14,138 @@ ghcr-login:
 		test -n "$$GHCR_TOKEN" || { echo "Missing GHCR_TOKEN in $(RELEASE_ENV_FILE)"; exit 1; }; \
 		echo "$$GHCR_TOKEN" | docker login "$$REGISTRY" -u "$$GHCR_USERNAME" --password-stdin'
 
+build-all: \
+	plugin-loop-build
+
 push-all: \
-	push-channel-slack \
-	push-channel-email \
-	push-channel-telegram \
-	push-kakao-provider \
-	push-gmail \
-	push-microsoft-email \
-	push-microsoft-office \
-	push-db-query
+	plugin-loop-push
 
-build-channel-slack:
-	docker build -f plugins/official/channel-slack/Dockerfile -t $(REGISTRY)/$(IMAGE_NAMESPACE)/channel-slack:latest .
+delete-all: \
+	plugin-loop-delete
 
-push-channel-slack: build-channel-slack
-	docker push $(REGISTRY)/$(IMAGE_NAMESPACE)/channel-slack:latest
+plugin:
+	@bash -lc 'set -euo pipefail; \
+		test -n "$(TARGET)" || { echo "Missing TARGET. Usage: make plugin TARGET=<plugin> CATEGORY=<channel|provider> CMD=<build|push|delete>"; exit 1; }; \
+		test -n "$(CATEGORY)" || { echo "Missing CATEGORY. Usage: make plugin TARGET=<plugin> CATEGORY=<channel|provider> CMD=<build|push|delete>"; exit 1; }; \
+		test -n "$(CMD)" || { echo "Missing CMD. Usage: make plugin TARGET=<plugin> CATEGORY=<channel|provider> CMD=<build|push|delete>"; exit 1; }; \
+		target="$(TARGET)"; \
+		category="$(CATEGORY)"; \
+		cmd="$(CMD)"; \
+		case " $(PLUGINS) " in \
+			*" $$target "*) ;; \
+			*) echo "Unknown TARGET: $$target"; exit 1 ;; \
+		esac; \
+		case "$$category" in \
+			channel|provider) ;; \
+			*) echo "Unsupported CATEGORY: $$category. Use CATEGORY=channel or CATEGORY=provider"; exit 1 ;; \
+		esac; \
+		case "$$target" in \
+			channel-slack) expected_category="channel"; image_name="slack"; dockerfile="plugins/official/channel/slack/Dockerfile" ;; \
+			channel-email) expected_category="channel"; image_name="email"; dockerfile="plugins/official/channel/email/Dockerfile" ;; \
+			channel-telegram) expected_category="channel"; image_name="telegram"; dockerfile="plugins/official/channel/telegram/Dockerfile" ;; \
+			kakao-provider) expected_category="channel"; image_name="kakao"; dockerfile="plugins/official/channel/kakao/Dockerfile" ;; \
+			gmail) expected_category="provider"; image_name="gmail"; dockerfile="plugins/official/provider/gmail/Dockerfile" ;; \
+			microsoft-email) expected_category="provider"; image_name="microsoft-email"; dockerfile="plugins/official/provider/microsoft-email/Dockerfile" ;; \
+			microsoft-office) expected_category="provider"; image_name="microsoft-office"; dockerfile="plugins/official/provider/microsoft-office/Dockerfile" ;; \
+			microsoft-office-graph) expected_category="provider"; image_name="microsoft-office-graph"; dockerfile="plugins/official/provider/microsoft-office-graph/Dockerfile" ;; \
+			db-query) expected_category="provider"; image_name="db-query"; dockerfile="plugins/official/provider/db-query/Dockerfile" ;; \
+			http-client) expected_category="provider"; image_name="http-client"; dockerfile="plugins/official/provider/http-client/Dockerfile" ;; \
+			command-exec) expected_category="provider"; image_name="command-exec"; dockerfile="plugins/official/provider/command-exec/Dockerfile" ;; \
+			internal-approval) expected_category="provider"; image_name="internal-approval"; dockerfile="plugins/official/provider/internal-approval/Dockerfile" ;; \
+			weather-openmeteo) expected_category="provider"; image_name="weather-openmeteo"; dockerfile="plugins/official/provider/weather-openmeteo/Dockerfile" ;; \
+			google-news) expected_category="provider"; image_name="google-news"; dockerfile="plugins/official/provider/google-news/Dockerfile" ;; \
+			*) echo "No Dockerfile mapping for $$target"; exit 1 ;; \
+		esac; \
+		if [ "$$category" != "$$expected_category" ]; then \
+			echo "CATEGORY mismatch for $$target: expected $$expected_category, got $$category"; \
+			exit 1; \
+		fi; \
+		image_ref="$(REGISTRY)/$(IMAGE_NAMESPACE)/$$category/$$image_name:latest"; \
+		case "$$cmd" in \
+			build) \
+				docker build -f "$$dockerfile" -t "$$image_ref" . ;; \
+			push) \
+				docker push "$$image_ref" ;; \
+			delete) \
+				test -n "$(VERSION)" || { echo "Missing VERSION. Usage: make plugin TARGET=<plugin> CMD=delete VERSION=<tag|all>"; exit 1; }; \
+				set -a; source "$(RELEASE_ENV_FILE)"; set +a; \
+				test -n "$$GHCR_TOKEN" || { echo "Missing GHCR_TOKEN in $(RELEASE_ENV_FILE)"; exit 1; }; \
+				test -n "$$(command -v gh)" || { echo "Missing gh CLI"; exit 1; }; \
+				version_tag="$(VERSION)"; \
+				namespace="$(IMAGE_NAMESPACE)"; \
+				owner="$${namespace%%/*}"; \
+				prefix="$${namespace#*/}"; \
+				if [ "$$prefix" = "$$namespace" ]; then \
+					package_name="$$category/$$image_name"; \
+				else \
+					package_name="$$prefix/$$category/$$image_name"; \
+				fi; \
+				encoded_package="$${package_name//\//%2F}"; \
+				export GH_TOKEN="$$GHCR_TOKEN"; \
+				if [ "$$version_tag" = "all" ]; then \
+					echo "Deleting GHCR package $$package_name"; \
+					gh api -X DELETE "/$(GH_PACKAGE_API_SCOPE)/$$owner/packages/container/$$encoded_package" >/dev/null; \
+					exit 0; \
+				fi; \
+				echo "Deleting GHCR package version tagged $$version_tag from $$package_name"; \
+				version_ids="$$(gh api --paginate "/$(GH_PACKAGE_API_SCOPE)/$$owner/packages/container/$$encoded_package/versions" --jq ".[] | select((.metadata.container.tags // []) | index(\"$$version_tag\")) | .id" 2>/dev/null || true)"; \
+				if [ -z "$$version_ids" ]; then \
+					echo "No package version found for $$package_name with tag $$version_tag"; \
+					exit 0; \
+				fi; \
+				for version_id in $$version_ids; do \
+					echo "Deleting version $$version_id tagged $$version_tag from $$package_name"; \
+					gh api -X DELETE "/$(GH_PACKAGE_API_SCOPE)/$$owner/packages/container/$$encoded_package/versions/$$version_id" >/dev/null; \
+				done ;; \
+			*) \
+				echo "Unsupported CMD: $$cmd. Use CMD=build, CMD=push, or CMD=delete"; \
+				exit 1 ;; \
+		esac'
 
-build-channel-email:
-	docker build -f plugins/official/channel-email/Dockerfile -t $(REGISTRY)/$(IMAGE_NAMESPACE)/channel-email:latest .
+plugin-loop-build:
+	@for plugin in $(PLUGINS); do \
+		case "$$plugin" in \
+			channel-slack|channel-email|channel-telegram|kakao-provider) category=channel ;; \
+			*) category=provider ;; \
+		esac; \
+		$(MAKE) plugin TARGET=$$plugin CATEGORY=$$category CMD=build; \
+	done
 
-push-channel-email: build-channel-email
-	docker push $(REGISTRY)/$(IMAGE_NAMESPACE)/channel-email:latest
+plugin-loop-push:
+	@for plugin in $(PLUGINS); do \
+		case "$$plugin" in \
+			channel-slack|channel-email|channel-telegram|kakao-provider) category=channel ;; \
+			*) category=provider ;; \
+		esac; \
+		$(MAKE) plugin TARGET=$$plugin CATEGORY=$$category CMD=push; \
+	done
 
-build-channel-telegram:
-	docker build -f plugins/official/channel-telegram/Dockerfile -t $(REGISTRY)/$(IMAGE_NAMESPACE)/channel-telegram:latest .
+plugin-loop-delete:
+	@for plugin in $(PLUGINS); do \
+		case "$$plugin" in \
+			channel-slack|channel-email|channel-telegram|kakao-provider) category=channel ;; \
+			*) category=provider ;; \
+		esac; \
+		$(MAKE) plugin TARGET=$$plugin CATEGORY=$$category CMD=delete VERSION=all; \
+	done
 
-push-channel-telegram: build-channel-telegram
-	docker push $(REGISTRY)/$(IMAGE_NAMESPACE)/channel-telegram:latest
+build-%:
+	@case "$*" in \
+		channel-slack|channel-email|channel-telegram|kakao-provider) category=channel ;; \
+		*) category=provider ;; \
+	esac; \
+	$(MAKE) plugin TARGET=$* CATEGORY=$$category CMD=build
 
-build-kakao-provider:
-	docker build -f plugins/official/kakao-provider/Dockerfile -t $(REGISTRY)/$(IMAGE_NAMESPACE)/kakao-provider:latest .
+push-%:
+	@case "$*" in \
+		channel-slack|channel-email|channel-telegram|kakao-provider) category=channel ;; \
+		*) category=provider ;; \
+	esac; \
+	$(MAKE) plugin TARGET=$* CATEGORY=$$category CMD=push
 
-push-kakao-provider: build-kakao-provider
-	docker push $(REGISTRY)/$(IMAGE_NAMESPACE)/kakao-provider:latest
-
-build-gmail:
-	docker build -f plugins/official/gmail/Dockerfile -t $(REGISTRY)/$(IMAGE_NAMESPACE)/gmail:latest .
-
-push-gmail: build-gmail
-	docker push $(REGISTRY)/$(IMAGE_NAMESPACE)/gmail:latest
-
-build-microsoft-email:
-	docker build -f plugins/official/microsoft-email/Dockerfile -t $(REGISTRY)/$(IMAGE_NAMESPACE)/microsoft-email:latest .
-
-push-microsoft-email: build-microsoft-email
-	docker push $(REGISTRY)/$(IMAGE_NAMESPACE)/microsoft-email:latest
-
-build-microsoft-office:
-	docker build -f plugins/official/microsoft-office/Dockerfile -t $(REGISTRY)/$(IMAGE_NAMESPACE)/microsoft-office:latest .
-
-push-microsoft-office: build-microsoft-office
-	docker push $(REGISTRY)/$(IMAGE_NAMESPACE)/microsoft-office:latest
-
-build-db-query:
-	docker build -f plugins/official/db-query/Dockerfile -t $(REGISTRY)/$(IMAGE_NAMESPACE)/db-query:latest .
-
-push-db-query: build-db-query
-	docker push $(REGISTRY)/$(IMAGE_NAMESPACE)/db-query:latest
+delete-%:
+	@case "$*" in \
+		channel-slack|channel-email|channel-telegram|kakao-provider) category=channel ;; \
+		*) category=provider ;; \
+	esac; \
+	$(MAKE) plugin TARGET=$* CATEGORY=$$category CMD=delete VERSION="$(VERSION)"

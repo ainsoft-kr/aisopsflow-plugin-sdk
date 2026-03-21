@@ -10,8 +10,8 @@ const { loadAndValidateManifest } = await import('../../../packages/js/runner-pl
 const { startRunnerPluginHost } = await import('../../../packages/js/runner-plugin-runtime/host.ts');
 
 async function main() {
-  const dbManifest = path.join(repoRoot, 'plugins/official/db-query/runner-plugin.yaml');
-  const gmailManifest = path.join(repoRoot, 'plugins/official/gmail/runner-plugin.yaml');
+  const dbManifest = path.join(repoRoot, 'plugins/official/provider/db-query/runner-plugin.yaml');
+  const gmailManifest = path.join(repoRoot, 'plugins/official/provider/gmail/runner-plugin.yaml');
   const exampleManifest = path.join(repoRoot, 'docs/runner-plugin-manifest-v1.example.yaml');
 
   await loadAndValidateManifest(exampleManifest);
