@@ -53,24 +53,47 @@ These are the plugin packages targeted by:
 1. Implement or update the plugin under the matching category path such as `plugins/official/channel/<plugin-name>/` or `plugins/official/provider/<plugin-name>/`
 2. Run local validation:
    - `bash scripts/validate-sdk.sh`
-3. Build OCI images:
+3. Choose one publishing path.
+
+### GHCR Path
+
+1. Build OCI images:
    - `make build-all`
+   - `make build-all-ghcr`
    - or `make build-<plugin-name>`
-   - or `make plugin TARGET=<plugin-name> CATEGORY=<channel|provider> CMD=build`
-4. Authenticate to GHCR using release env settings:
+2. Authenticate to GHCR using release env settings:
    - `make ghcr-login`
-5. Push official images:
+3. Push official images:
    - `make push-all`
+   - `make push-all-ghcr`
    - or `make push-<plugin-name>`
-   - or `make plugin TARGET=<plugin-name> CATEGORY=<channel|provider> CMD=push`
-6. Delete published GHCR packages when cleanup is needed:
+4. Delete published GHCR packages when cleanup is needed:
    - `make delete-all`
+   - `make delete-all-ghcr`
    - or `make delete-<plugin-name> VERSION=<tag>`
-   - or `make plugin TARGET=<plugin-name> CATEGORY=<channel|provider> CMD=delete VERSION=<tag>`
    - use `VERSION=all` to delete the whole package instead of a tagged version
    - requires `gh` CLI and `GHCR_TOKEN` with package delete permission
-7. Update catalog entries to the published image reference
-8. Update Runner runtime config to reference the published plugin image
+
+### Catalog Server Path
+
+1. Build plugin bundles:
+   - `make build-all-catalog`
+   - or `make build-catalog-<plugin-name>`
+2. Publish bundles to the Yesod catalog server:
+   - `make push-all-catalog CATALOG_TOKEN=<publish-token>`
+   - or `make push-catalog-<plugin-name> CATALOG_TOKEN=<publish-token>`
+3. The catalog publish path now performs:
+   - bundle archive build into `.dist/catalog/`
+   - `POST /api/publish` to the catalog server
+   - catalog manifest export back into `../aisopsflow-plugin-catalog/plugins/official/`
+   - channel promote using `CATALOG_CHANNEL` which defaults to `stable`
+4. Catalog publish targets check `$(CATALOG_BASE_URL)/healthz` first and fail with a clear message if the catalog server is down
+5. Set `CATALOG_REPO`, `CATALOG_BASE_URL`, `CATALOG_TOKEN`, `CATALOG_PLATFORM`, and `CATALOG_CHANNEL` as needed
+6. You can store catalog publish settings in `deploy/.env.catalog`
+   - start from `deploy/.env.catalog.example`
+   - `Makefile` loads `deploy/.env.catalog` automatically when it exists
+
+For the catalog server path, Runner runtime config should use catalog-backed resolution instead of GHCR image refs.
 
 Published image paths are category-scoped:
 

@@ -1,1 +1,3 @@
 deploy/.env.release
+deploy/.env.catalog
+.dist/

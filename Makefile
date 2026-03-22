@@ -1,11 +1,27 @@
 REGISTRY ?= ghcr.io
 IMAGE_NAMESPACE ?= ainsoft-kr/aisopsflow/plugin
 RELEASE_ENV_FILE ?= deploy/.env.release
+CATALOG_ENV_FILE ?= deploy/.env.catalog
 GH_PACKAGE_API_SCOPE ?= orgs
+CATALOG_BASE_URL ?= http://127.0.0.1:3100
+CATALOG_REPO ?= ../aisopsflow-plugin-catalog
+CATALOG_TOKEN ?=
+CATALOG_CHANNEL ?= stable
+CATALOG_PLATFORM ?= linux-amd64
+CATALOG_DIST_DIR ?= .dist/catalog
+
+-include $(CATALOG_ENV_FILE)
 
 PLUGINS = channel-slack channel-email channel-telegram kakao-provider gmail microsoft-email microsoft-office microsoft-office-graph db-query http-client command-exec internal-approval weather-openmeteo google-news
 
-.PHONY: build-all push-all delete-all plugin ghcr-login build-% push-% delete-%
+.PHONY: \
+	build-all build-all-ghcr build-all-catalog \
+	push-all push-all-ghcr push-all-catalog \
+	delete-all delete-all-ghcr \
+	plugin ghcr-login \
+	catalog-server-check catalog-publish-check \
+	build-% push-% delete-% \
+	build-catalog-% push-catalog-%
 
 ghcr-login:
 	@bash -lc 'set -a; source "$(RELEASE_ENV_FILE)"; set +a; \
@@ -14,14 +30,45 @@ ghcr-login:
 		test -n "$$GHCR_TOKEN" || { echo "Missing GHCR_TOKEN in $(RELEASE_ENV_FILE)"; exit 1; }; \
 		echo "$$GHCR_TOKEN" | docker login "$$REGISTRY" -u "$$GHCR_USERNAME" --password-stdin'
 
-build-all: \
-	plugin-loop-build
+build-all: build-all-ghcr
 
-push-all: \
-	plugin-loop-push
+build-all-ghcr: \
+	plugin-loop-build-ghcr
 
-delete-all: \
-	plugin-loop-delete
+build-all-catalog: \
+	plugin-loop-build-catalog
+
+push-all: push-all-ghcr
+
+push-all-ghcr: \
+	plugin-loop-push-ghcr
+
+push-all-catalog: \
+	catalog-publish-check \
+	plugin-loop-push-catalog
+
+delete-all: delete-all-ghcr
+
+delete-all-ghcr: \
+	plugin-loop-delete-ghcr
+
+catalog-server-check:
+	@curl --fail --silent --show-error "$(CATALOG_BASE_URL)/healthz" >/dev/null || { \
+		echo "Catalog server appears to be down: $(CATALOG_BASE_URL)"; \
+		echo "Start the server first, then retry the catalog publish target."; \
+		exit 1; \
+	}
+
+catalog-publish-check: \
+	catalog-server-check
+	@test -n "$(CATALOG_TOKEN)" || { \
+		echo "Missing CATALOG_TOKEN. Set CATALOG_TOKEN=<publish-token>."; \
+		exit 1; \
+	}
+	@test -x "$(CATALOG_REPO)/scripts/publish-and-export.sh" || { \
+		echo "Catalog publish script not found: $(CATALOG_REPO)/scripts/publish-and-export.sh"; \
+		exit 1; \
+	}
 
 plugin:
 	@bash -lc 'set -euo pipefail; \
@@ -102,7 +149,7 @@ plugin:
 				exit 1 ;; \
 		esac'
 
-plugin-loop-build:
+plugin-loop-build-ghcr:
 	@for plugin in $(PLUGINS); do \
 		case "$$plugin" in \
 			channel-slack|channel-email|channel-telegram|kakao-provider) category=channel ;; \
@@ -111,7 +158,7 @@ plugin-loop-build:
 		$(MAKE) plugin TARGET=$$plugin CATEGORY=$$category CMD=build; \
 	done
 
-plugin-loop-push:
+plugin-loop-push-ghcr:
 	@for plugin in $(PLUGINS); do \
 		case "$$plugin" in \
 			channel-slack|channel-email|channel-telegram|kakao-provider) category=channel ;; \
@@ -120,7 +167,17 @@ plugin-loop-push:
 		$(MAKE) plugin TARGET=$$plugin CATEGORY=$$category CMD=push; \
 	done
 
-plugin-loop-delete:
+plugin-loop-build-catalog:
+	@for plugin in $(PLUGINS); do \
+		$(MAKE) build-catalog-$$plugin; \
+	done
+
+plugin-loop-push-catalog:
+	@for plugin in $(PLUGINS); do \
+		$(MAKE) push-catalog-$$plugin; \
+	done
+
+plugin-loop-delete-ghcr:
 	@for plugin in $(PLUGINS); do \
 		case "$$plugin" in \
 			channel-slack|channel-email|channel-telegram|kakao-provider) category=channel ;; \
@@ -128,6 +185,57 @@ plugin-loop-delete:
 		esac; \
 		$(MAKE) plugin TARGET=$$plugin CATEGORY=$$category CMD=delete VERSION=all; \
 	done
+
+build-catalog-%:
+	@case "$*" in \
+		channel-slack) category=channel; plugin_dir="plugins/official/channel/slack" ;; \
+		channel-email) category=channel; plugin_dir="plugins/official/channel/email" ;; \
+		channel-telegram) category=channel; plugin_dir="plugins/official/channel/telegram" ;; \
+		kakao-provider) category=channel; plugin_dir="plugins/official/channel/kakao" ;; \
+		gmail) category=provider; plugin_dir="plugins/official/provider/gmail" ;; \
+		microsoft-email) category=provider; plugin_dir="plugins/official/provider/microsoft-email" ;; \
+		microsoft-office) category=provider; plugin_dir="plugins/official/provider/microsoft-office" ;; \
+		microsoft-office-graph) category=provider; plugin_dir="plugins/official/provider/microsoft-office-graph" ;; \
+		db-query) category=provider; plugin_dir="plugins/official/provider/db-query" ;; \
+		http-client) category=provider; plugin_dir="plugins/official/provider/http-client" ;; \
+		command-exec) category=provider; plugin_dir="plugins/official/provider/command-exec" ;; \
+		internal-approval) category=provider; plugin_dir="plugins/official/provider/internal-approval" ;; \
+		weather-openmeteo) category=provider; plugin_dir="plugins/official/provider/weather-openmeteo" ;; \
+		google-news) category=provider; plugin_dir="plugins/official/provider/google-news" ;; \
+		*) echo "Unknown plugin target: $*"; exit 1 ;; \
+	esac; \
+	bundle_path="$(CATALOG_DIST_DIR)/$*.tar.gz"; \
+	bash scripts/build-catalog-bundle.sh "$$plugin_dir" "$$bundle_path"
+
+push-catalog-%:
+	@$(MAKE) catalog-publish-check
+	@case "$*" in \
+		channel-slack) category=channel; plugin_dir="plugins/official/channel/slack" ;; \
+		channel-email) category=channel; plugin_dir="plugins/official/channel/email" ;; \
+		channel-telegram) category=channel; plugin_dir="plugins/official/channel/telegram" ;; \
+		kakao-provider) category=channel; plugin_dir="plugins/official/channel/kakao" ;; \
+		gmail) category=provider; plugin_dir="plugins/official/provider/gmail" ;; \
+		microsoft-email) category=provider; plugin_dir="plugins/official/provider/microsoft-email" ;; \
+		microsoft-office) category=provider; plugin_dir="plugins/official/provider/microsoft-office" ;; \
+		microsoft-office-graph) category=provider; plugin_dir="plugins/official/provider/microsoft-office-graph" ;; \
+		db-query) category=provider; plugin_dir="plugins/official/provider/db-query" ;; \
+		http-client) category=provider; plugin_dir="plugins/official/provider/http-client" ;; \
+		command-exec) category=provider; plugin_dir="plugins/official/provider/command-exec" ;; \
+		internal-approval) category=provider; plugin_dir="plugins/official/provider/internal-approval" ;; \
+		weather-openmeteo) category=provider; plugin_dir="plugins/official/provider/weather-openmeteo" ;; \
+		google-news) category=provider; plugin_dir="plugins/official/provider/google-news" ;; \
+		*) echo "Unknown plugin target: $*"; exit 1 ;; \
+	esac; \
+	bundle_path="$(CATALOG_DIST_DIR)/$*.tar.gz"; \
+	bash scripts/build-catalog-bundle.sh "$$plugin_dir" "$$bundle_path"; \
+	bash scripts/publish-catalog-plugin.sh \
+		"$$plugin_dir" \
+		"$$bundle_path" \
+		"$(CATALOG_REPO)" \
+		"$(CATALOG_BASE_URL)" \
+		"$(CATALOG_TOKEN)" \
+		"$(CATALOG_PLATFORM)" \
+		"$(CATALOG_CHANNEL)"
 
 build-%:
 	@case "$*" in \
