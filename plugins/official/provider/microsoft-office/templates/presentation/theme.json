@@ -1,0 +1,48 @@
+{
+  "deckLabel": "AisOpsFlow Auto Deck",
+  "fonts": {
+    "head": "Aptos Display",
+    "body": "Aptos"
+  },
+  "palettes": [
+    {
+      "bg": "F6EFE5",
+      "paper": "FFF9F0",
+      "paperAlt": "FDEBD3",
+      "ink": "1F1A17",
+      "muted": "6F655B",
+      "accent": "D97706",
+      "accentSoft": "FBD38D",
+      "accentAlt": "0F766E",
+      "accentAltSoft": "CCFBF1",
+      "line": "D8C8B8",
+      "orb": "F59E0B"
+    },
+    {
+      "bg": "EEF6FF",
+      "paper": "F9FCFF",
+      "paperAlt": "DCEEFF",
+      "ink": "122033",
+      "muted": "5B6B7B",
+      "accent": "2563EB",
+      "accentSoft": "BFDBFE",
+      "accentAlt": "0891B2",
+      "accentAltSoft": "CFFAFE",
+      "line": "CADBEC",
+      "orb": "60A5FA"
+    },
+    {
+      "bg": "F3F7F0",
+      "paper": "FBFEF9",
+      "paperAlt": "E2F2E0",
+      "ink": "162117",
+      "muted": "5B6A5C",
+      "accent": "3F7D4C",
+      "accentSoft": "CDE8D1",
+      "accentAlt": "C2410C",
+      "accentAltSoft": "FED7AA",
+      "line": "CDD9CD",
+      "orb": "86EFAC"
+    }
+  ]
+}

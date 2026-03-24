@@ -15,6 +15,12 @@ Capabilities:
 
 This plugin is for local file creation. It does not call Microsoft Graph.
 
+PowerPoint layouts can be customized with:
+
+- `presentation_template_path`: path to a JSON bundle file or a directory containing `theme.json` and `layouts.json`
+- `presentation_template_json`: inline JSON bundle with `{ "theme": ..., "layouts": ... }`
+- `presentation_template`: inline object bundle
+
 Default writable locations:
 
 - `/tmp`
@@ -60,6 +66,7 @@ Example invoke payloads:
   "capability": "office.powerpoint.generate",
   "input": {
     "output_path": "/app/workspace/report.pptx",
+    "presentation_template_path": "/app/workspace/ppt-template",
     "slides": [
       {
         "title": "Weekly Review",
