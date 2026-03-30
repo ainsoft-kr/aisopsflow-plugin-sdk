@@ -1,3 +1,4 @@
 deploy/.env.release
 deploy/.env.catalog
 .dist/
+plugins/official/provider/microsoft-office/node_modules/
