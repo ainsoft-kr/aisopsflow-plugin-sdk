@@ -1,0 +1,16 @@
+{
+  "documentLabel": "AisOpsFlow Report",
+  "fonts": {
+    "head": "Aptos Display",
+    "body": "Aptos",
+    "mono": "Cascadia Mono"
+  },
+  "colors": {
+    "page": "FFFFFF",
+    "ink": "1F1A17",
+    "muted": "6F655B",
+    "accent": "D97706",
+    "line": "D8C8B8",
+    "tableHeaderFill": "FDEBD3"
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "workbook": {
+    "author": "AisOpsFlow",
+    "company": "Ainsoft",
+    "subject": "AisOpsFlow generated workbook",
+    "title": "AisOpsFlow Workbook",
+    "freezeTopRow": true
+  },
+  "sheet": {
+    "defaultColumnWidth": 18,
+    "defaultRowHeight": 18,
+    "showGridLines": true,
+    "autoFilter": true,
+    "zebra": true
+  },
+  "headerRow": {
+    "fontSize": 11,
+    "bold": true,
+    "textRef": "headerText",
+    "fillRef": "headerFill",
+    "borderRef": "grid",
+    "borderStyle": "thin",
+    "alignment": {
+      "horizontal": "center",
+      "vertical": "middle"
+    }
+  },
+  "bodyRow": {
+    "fontSize": 10,
+    "textRef": "bodyText",
+    "borderRef": "grid",
+    "borderStyle": "thin",
+    "alignment": {
+      "horizontal": "left",
+      "vertical": "middle"
+    }
+  },
+  "zebraRow": {
+    "fillRef": "rowAltFill"
+  },
+  "numberFormats": {
+    "integer": "#,##0",
+    "decimal": "#,##0.00"
+  }
+}

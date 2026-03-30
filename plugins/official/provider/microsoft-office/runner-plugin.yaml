@@ -47,3 +47,53 @@ compatibility:
   runner_api:
     min: v1
     max: v1
+
+# Sample invoke payloads:
+#
+# Excel with template
+# {
+#   "capability": "office.excel.generate",
+#   "input": {
+#     "output_path": "/app/workspace/report.xlsx",
+#     "excel_template_path": "/app/workspace/excel-template",
+#     "sheets": [
+#       {
+#         "name": "Summary",
+#         "rows": [
+#           ["Metric", "Value"],
+#           ["Errors", 12],
+#           ["Warnings", 3.5]
+#         ]
+#       }
+#     ]
+#   }
+# }
+#
+# Word with template
+# {
+#   "capability": "office.word.generate",
+#   "input": {
+#     "output_path": "/app/workspace/report.docx",
+#     "word_template_path": "/app/workspace/word-template",
+#     "blocks": [
+#       { "type": "heading", "text": "Incident Summary", "level": 1 },
+#       { "type": "paragraph", "text": "Service recovered after rollback." },
+#       { "type": "bullet_list", "items": ["Impact contained", "Follow-up required"] }
+#     ]
+#   }
+# }
+#
+# PowerPoint with template
+# {
+#   "capability": "office.powerpoint.generate",
+#   "input": {
+#     "output_path": "/app/workspace/report.pptx",
+#     "presentation_template_path": "/app/workspace/ppt-template",
+#     "slides": [
+#       {
+#         "title": "Weekly Review",
+#         "bullets": ["Revenue up 12%", "New incidents down 30%"]
+#       }
+#     ]
+#   }
+# }

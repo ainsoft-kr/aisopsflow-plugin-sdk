@@ -15,11 +15,18 @@ Capabilities:
 
 This plugin is for local file creation. It does not call Microsoft Graph.
 
-PowerPoint layouts can be customized with:
+Office outputs can be customized with document-specific templates:
 
-- `presentation_template_path`: path to a JSON bundle file or a directory containing `theme.json` and `layouts.json`
-- `presentation_template_json`: inline JSON bundle with `{ "theme": ..., "layouts": ... }`
-- `presentation_template`: inline object bundle
+- PowerPoint: `presentation_template_path`, `presentation_template_json`, `presentation_template`
+- Word: `word_template_path`, `word_template_json`, `word_template`
+- Excel: `excel_template_path`, `excel_template_json`, `excel_template`
+- Generic fallback: `template_path`, `template_json`, `template`
+
+Template directories live under:
+
+- `templates/presentation`
+- `templates/word`
+- `templates/excel`
 
 Default writable locations:
 
@@ -33,6 +40,7 @@ Example invoke payloads:
   "capability": "office.excel.generate",
   "input": {
     "output_path": "/app/workspace/report.xlsx",
+    "excel_template_path": "/app/workspace/excel-template",
     "sheets": [
       {
         "name": "Summary",
@@ -52,6 +60,7 @@ Example invoke payloads:
   "capability": "office.word.generate",
   "input": {
     "output_path": "/app/workspace/report.docx",
+    "word_template_path": "/app/workspace/word-template",
     "blocks": [
       { "type": "heading", "text": "Incident Summary", "level": 1 },
       { "type": "paragraph", "text": "Service recovered after rollback." },

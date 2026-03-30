@@ -4,15 +4,21 @@ import { fileURLToPath } from 'url';
 import ExcelJS from 'exceljs';
 import PptxGenJS from 'pptxgenjs';
 import {
+  AlignmentType,
+  BorderStyle,
   Document,
+  Footer,
   HeadingLevel,
+  Header,
   Packer,
+  PageNumber,
   Paragraph,
   Table,
   TableCell,
   TableRow,
   TextRun,
-  WidthType
+  WidthType,
+  convertInchesToTwip
 } from 'docx';
 
 const ALLOWED_BASE_DIRS = ['/tmp', '/app/workspace'];
@@ -21,29 +27,46 @@ const SUPPORTED_TYPES = {
   word: '.docx',
   powerpoint: '.pptx'
 };
-const PRESENTATION_TEMPLATE_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../templates/presentation');
-const presentationTemplateBundleCache = new Map();
+const TEMPLATE_ROOT_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../templates');
+const DOCUMENT_TEMPLATE_DIRS = {
+  excel: path.join(TEMPLATE_ROOT_DIR, 'excel'),
+  word: path.join(TEMPLATE_ROOT_DIR, 'word'),
+  powerpoint: path.join(TEMPLATE_ROOT_DIR, 'presentation')
+};
+const documentTemplateBundleCache = new Map();
 
 export async function generateExcelFile(input) {
   const outputPath = await prepareOutputPath(input?.output_path, '.xlsx');
+  const excelTemplates = await loadDocumentTemplateBundle(input, 'excel');
   const workbook = new ExcelJS.Workbook();
+  applyExcelWorkbookMetadata(workbook, excelTemplates);
   const sheets = normalizeSheets(input);
+  const defaultColumnWidth = resolveFiniteNumber(excelTemplates?.layouts?.sheet?.defaultColumnWidth);
+  const defaultFreezeTopRow = excelTemplates?.layouts?.workbook?.freezeTopRow === true;
 
   for (const [index, sheetInput] of sheets.entries()) {
     const worksheet = workbook.addWorksheet(resolveSheetName(sheetInput?.name, index));
+    const sheetRows = normalizeRows(sheetInput?.rows ?? sheetInput?.rows_json, { preserveTypes: true });
     if (Array.isArray(sheetInput?.columns) && sheetInput.columns.length > 0) {
       worksheet.columns = sheetInput.columns.map((column) => ({
         header: stringifyCell(column?.header),
         key: typeof column?.key === 'string' && column.key.trim() ? column.key.trim() : undefined,
-        width: Number.isFinite(Number(column?.width)) ? Number(column.width) : undefined
+        width: Number.isFinite(Number(column?.width)) ? Number(column.width) : defaultColumnWidth
       }));
     }
-    for (const row of normalizeRows(sheetInput?.rows ?? sheetInput?.rows_json)) {
+    for (const row of sheetRows) {
       worksheet.addRow(row);
     }
-    if (sheetInput?.freeze_top_row === true) {
-      worksheet.views = [{ state: 'frozen', ySplit: 1 }];
+    if ((!Array.isArray(sheetInput?.columns) || sheetInput.columns.length === 0) && Number.isFinite(defaultColumnWidth)) {
+      for (let columnIndex = 1; columnIndex <= worksheet.columnCount; columnIndex += 1) {
+        worksheet.getColumn(columnIndex).width = defaultColumnWidth;
+      }
     }
+    applyExcelWorksheetTemplate(worksheet, sheetInput, excelTemplates, {
+      freezeTopRow:
+        sheetInput?.freeze_top_row === true || (sheetInput?.freeze_top_row !== false && defaultFreezeTopRow),
+      sheetRows
+    });
   }
 
   await workbook.xlsx.writeFile(outputPath);
@@ -52,10 +75,11 @@ export async function generateExcelFile(input) {
 
 export async function generateWordFile(input) {
   const outputPath = await prepareOutputPath(input?.output_path, '.docx');
+  const wordTemplates = await loadDocumentTemplateBundle(input, 'word');
   const blocks = normalizeWordBlocks(input);
-  const children = buildWordBlocks(blocks);
+  const children = buildWordBlocks(blocks, wordTemplates);
   const doc = new Document({
-    sections: [{ children: children.length > 0 ? children : [new Paragraph('')] }]
+    sections: [buildWordSection(children, wordTemplates)]
   });
   const buffer = await Packer.toBuffer(doc);
   await fs.writeFile(outputPath, buffer);
@@ -64,7 +88,7 @@ export async function generateWordFile(input) {
 
 export async function generatePowerPointFile(input) {
   const outputPath = await prepareOutputPath(input?.output_path, '.pptx');
-  const presentationTemplates = await loadPresentationTemplateBundle(input);
+  const presentationTemplates = await loadDocumentTemplateBundle(input, 'powerpoint');
   const pptx = new PptxGenJS();
   pptx.layout = 'LAYOUT_WIDE';
   pptx.author = 'AisOpsFlow';
@@ -157,7 +181,7 @@ function normalizeSheets(input) {
   if (Array.isArray(input?.sheets) && input.sheets.length > 0) {
     return input.sheets;
   }
-  return [{ name: 'Sheet1', rows: normalizeRows(input?.rows || input?.rows_json) }];
+  return [{ name: 'Sheet1', rows: normalizeRows(input?.rows || input?.rows_json, { preserveTypes: true }) }];
 }
 
 function normalizeWordBlocks(input) {
@@ -199,96 +223,122 @@ function normalizeSlides(input) {
   return [{}];
 }
 
-async function loadPresentationTemplateBundle(input = {}) {
-  const inlineBundle = parseInlinePresentationTemplateBundle(input);
+async function loadDocumentTemplateBundle(input = {}, documentType) {
+  const inlineBundle = parseInlineDocumentTemplateBundle(input, documentType);
   if (inlineBundle) {
     return inlineBundle;
   }
 
-  const templatePath = normalizePresentationTemplatePathInput(input);
-  const cacheKey = templatePath || '__default__';
-  if (!presentationTemplateBundleCache.has(cacheKey)) {
-    presentationTemplateBundleCache.set(cacheKey, loadPresentationTemplateBundleFromSource(templatePath));
+  const templatePath = normalizeDocumentTemplatePathInput(input, documentType);
+  const cacheKey = `${documentType}:${templatePath || '__default__'}`;
+  if (!documentTemplateBundleCache.has(cacheKey)) {
+    documentTemplateBundleCache.set(cacheKey, loadDocumentTemplateBundleFromSource(documentType, templatePath));
   }
-  return presentationTemplateBundleCache.get(cacheKey);
+  return documentTemplateBundleCache.get(cacheKey);
 }
 
-function normalizePresentationTemplatePathInput(input) {
-  if (typeof input?.presentation_template_path === 'string' && input.presentation_template_path.trim()) {
-    return resolveAllowedPath(input.presentation_template_path.trim(), 'presentation_template_path');
-  }
-  if (typeof input?.template_path === 'string' && input.template_path.trim()) {
-    return resolveAllowedPath(input.template_path.trim(), 'template_path');
-  }
-  return null;
-}
-
-function parseInlinePresentationTemplateBundle(input) {
-  if (input?.presentation_template && typeof input.presentation_template === 'object') {
-    return validatePresentationTemplateBundle(input.presentation_template);
-  }
-  if (typeof input?.presentation_template_json === 'string' && input.presentation_template_json.trim()) {
-    try {
-      return validatePresentationTemplateBundle(JSON.parse(input.presentation_template_json));
-    } catch (_error) {
-      fail('presentation_template_json must be valid JSON object', 'invalid_request');
+function normalizeDocumentTemplatePathInput(input, documentType) {
+  const candidateFields = resolveDocumentTemplateFields(documentType).path;
+  for (const fieldName of candidateFields) {
+    if (typeof input?.[fieldName] === 'string' && input[fieldName].trim()) {
+      return resolveAllowedPath(input[fieldName].trim(), fieldName);
     }
   }
   return null;
 }
 
-async function loadPresentationTemplateBundleFromSource(templatePath) {
+function parseInlineDocumentTemplateBundle(input, documentType) {
+  const fields = resolveDocumentTemplateFields(documentType);
+  for (const fieldName of fields.object) {
+    if (input?.[fieldName] && typeof input[fieldName] === 'object') {
+      return validateDocumentTemplateBundle(documentType, input[fieldName]);
+    }
+  }
+  for (const fieldName of fields.json) {
+    if (typeof input?.[fieldName] === 'string' && input[fieldName].trim()) {
+      try {
+        return validateDocumentTemplateBundle(documentType, JSON.parse(input[fieldName]));
+      } catch (_error) {
+        fail(`${fieldName} must be valid JSON object`, 'invalid_request');
+      }
+    }
+  }
+  return null;
+}
+
+async function loadDocumentTemplateBundleFromSource(documentType, templatePath) {
+  const templateKind = documentType === 'powerpoint' ? 'presentation' : documentType;
   if (!templatePath) {
-    return loadPresentationTemplateBundleFromDirectory(PRESENTATION_TEMPLATE_DIR);
+    return loadDocumentTemplateBundleFromDirectory(documentType, DOCUMENT_TEMPLATE_DIRS[documentType]);
   }
 
   const stat = await fs.stat(templatePath).catch(() => null);
   if (!stat) {
-    fail('presentation template path does not exist', 'invalid_request');
+    fail(`${templateKind} template path does not exist`, 'invalid_request');
   }
   if (stat.isDirectory()) {
-    return loadPresentationTemplateBundleFromDirectory(templatePath);
+    return loadDocumentTemplateBundleFromDirectory(documentType, templatePath);
   }
   const raw = await fs.readFile(templatePath, 'utf8');
   let parsed;
   try {
     parsed = JSON.parse(raw);
   } catch (_error) {
-    fail('presentation template file must be valid JSON', 'invalid_request');
+    fail(`${templateKind} template file must be valid JSON`, 'invalid_request');
   }
-  return validatePresentationTemplateBundle(parsed);
+  return validateDocumentTemplateBundle(documentType, parsed);
 }
 
-async function loadPresentationTemplateBundleFromDirectory(templateDir) {
+async function loadDocumentTemplateBundleFromDirectory(documentType, templateDir) {
   const [theme, layouts] = await Promise.all([
-    readPresentationTemplateFile(templateDir, 'theme.json'),
-    readPresentationTemplateFile(templateDir, 'layouts.json')
+    readDocumentTemplateFile(templateDir, 'theme.json'),
+    readDocumentTemplateFile(templateDir, 'layouts.json')
   ]);
-  return validatePresentationTemplateBundle({ theme, layouts });
+  return validateDocumentTemplateBundle(documentType, { theme, layouts });
 }
 
-async function readPresentationTemplateFile(templateDir, fileName) {
+async function readDocumentTemplateFile(templateDir, fileName) {
   const raw = await fs.readFile(path.join(templateDir, fileName), 'utf8');
   return JSON.parse(raw);
 }
 
-function validatePresentationTemplateBundle(bundle) {
+function validateDocumentTemplateBundle(documentType, bundle) {
+  const templateKind = documentType === 'powerpoint' ? 'presentation' : documentType;
   if (!bundle || typeof bundle !== 'object') {
-    fail('presentation template must be an object', 'invalid_request');
+    fail(`${templateKind} template must be an object`, 'invalid_request');
   }
   if (!bundle.theme || typeof bundle.theme !== 'object') {
-    fail('presentation template must include theme', 'invalid_request');
+    fail(`${templateKind} template must include theme`, 'invalid_request');
   }
   if (!bundle.layouts || typeof bundle.layouts !== 'object') {
-    fail('presentation template must include layouts', 'invalid_request');
-  }
-  if (!Array.isArray(bundle.theme.palettes) || bundle.theme.palettes.length === 0) {
-    fail('presentation template theme must include palettes', 'invalid_request');
+    fail(`${templateKind} template must include layouts`, 'invalid_request');
   }
   if (!bundle.theme.fonts || typeof bundle.theme.fonts !== 'object') {
-    fail('presentation template theme must include fonts', 'invalid_request');
+    fail(`${templateKind} template theme must include fonts`, 'invalid_request');
+  }
+  if (documentType === 'powerpoint') {
+    if (!Array.isArray(bundle.theme.palettes) || bundle.theme.palettes.length === 0) {
+      fail('presentation template theme must include palettes', 'invalid_request');
+    }
+  } else if (!bundle.theme.colors || typeof bundle.theme.colors !== 'object') {
+    fail(`${templateKind} template theme must include colors`, 'invalid_request');
   }
   return bundle;
+}
+
+function resolveDocumentTemplateFields(documentType) {
+  if (documentType === 'powerpoint') {
+    return {
+      path: ['presentation_template_path', 'powerpoint_template_path', 'template_path'],
+      object: ['presentation_template', 'powerpoint_template', 'template'],
+      json: ['presentation_template_json', 'powerpoint_template_json', 'template_json']
+    };
+  }
+  return {
+    path: [`${documentType}_template_path`, 'template_path'],
+    object: [`${documentType}_template`, 'template'],
+    json: [`${documentType}_template_json`, 'template_json']
+  };
 }
 
 function buildPresentationSlideModel(slideInput, index, totalSlides, presentationTemplates) {
@@ -879,7 +929,148 @@ function extractNumericSignal(text) {
   return Number(matches[matches.length - 1]) || 0;
 }
 
-function normalizeRows(rows) {
+function applyExcelWorkbookMetadata(workbook, excelTemplates) {
+  const workbookLayout = excelTemplates?.layouts?.workbook || {};
+  workbook.creator =
+    (typeof workbookLayout.author === 'string' && workbookLayout.author.trim()) ||
+    (typeof excelTemplates?.theme?.workbookLabel === 'string' && excelTemplates.theme.workbookLabel.trim()) ||
+    'AisOpsFlow';
+  workbook.company = workbookLayout.company || 'Ainsoft';
+  workbook.subject = workbookLayout.subject || 'AisOpsFlow generated workbook';
+  workbook.title = workbookLayout.title || 'AisOpsFlow Workbook';
+  workbook.created = new Date();
+}
+
+function applyExcelWorksheetTemplate(worksheet, sheetInput, excelTemplates, context) {
+  const workbookLayout = excelTemplates?.layouts?.workbook || {};
+  const sheetLayout = excelTemplates?.layouts?.sheet || {};
+  const headerRowLayout = excelTemplates?.layouts?.headerRow || {};
+  const bodyRowLayout = excelTemplates?.layouts?.bodyRow || {};
+  const zebraRowLayout = excelTemplates?.layouts?.zebraRow || {};
+  const freezeTopRow = context.freezeTopRow === true;
+  const showGridLines = sheetLayout.showGridLines !== false;
+  worksheet.views = [
+    {
+      state: freezeTopRow ? 'frozen' : 'normal',
+      ySplit: freezeTopRow ? 1 : undefined,
+      showGridLines
+    }
+  ];
+
+  if (sheetLayout.autoFilter === true && worksheet.columnCount > 0 && worksheet.rowCount > 0) {
+    worksheet.autoFilter = {
+      from: { row: 1, column: 1 },
+      to: { row: 1, column: worksheet.columnCount }
+    };
+  }
+
+  if (resolveFiniteNumber(sheetLayout.defaultRowHeight)) {
+    worksheet.properties.defaultRowHeight = Number(sheetLayout.defaultRowHeight);
+  }
+
+  if (worksheet.rowCount === 0) {
+    return;
+  }
+
+  const headerRow = worksheet.getRow(1);
+  applyExcelRowStyle(headerRow, buildExcelRowStyle(headerRowLayout, excelTemplates.theme));
+  headerRow.commit?.();
+
+  for (let rowIndex = 2; rowIndex <= worksheet.rowCount; rowIndex += 1) {
+    const row = worksheet.getRow(rowIndex);
+    applyExcelRowStyle(row, buildExcelRowStyle(bodyRowLayout, excelTemplates.theme));
+    if (sheetLayout.zebra === true && rowIndex % 2 === 0) {
+      const zebraStyle = buildExcelRowStyle(zebraRowLayout, excelTemplates.theme);
+      if (zebraStyle.fill) {
+        row.fill = zebraStyle.fill;
+      }
+    }
+    applyExcelNumberFormats(row, excelTemplates.layouts?.numberFormats || {});
+    row.commit?.();
+  }
+}
+
+function buildExcelRowStyle(spec, theme) {
+  if (!spec || typeof spec !== 'object') {
+    return {};
+  }
+  const fontColor = resolveThemeColor(theme, spec.textRef);
+  return {
+    font: {
+      name: spec.fontName || theme?.fonts?.body || 'Aptos',
+      size: resolveFiniteNumber(spec.fontSize) || undefined,
+      bold: spec.bold === true || undefined,
+      italic: spec.italic === true || undefined,
+      color: fontColor ? { argb: toExcelArgb(fontColor) } : undefined
+    },
+    alignment: spec.alignment && typeof spec.alignment === 'object' ? { ...spec.alignment } : undefined,
+    fill: buildExcelFill(theme, spec.fillRef),
+    border: buildExcelBorder(theme, spec.borderRef, spec.borderStyle),
+    numFmt: typeof spec.numFmt === 'string' && spec.numFmt.trim() ? spec.numFmt.trim() : undefined
+  };
+}
+
+function applyExcelRowStyle(row, style) {
+  if (style.font && Object.keys(style.font).length > 0) {
+    row.font = style.font;
+  }
+  if (style.alignment && Object.keys(style.alignment).length > 0) {
+    row.alignment = style.alignment;
+  }
+  if (style.fill) {
+    row.fill = style.fill;
+  }
+  if (style.border) {
+    row.border = style.border;
+  }
+  if (style.numFmt) {
+    row.numFmt = style.numFmt;
+  }
+}
+
+function applyExcelNumberFormats(row, numberFormats) {
+  row.eachCell((cell) => {
+    if (typeof cell.value !== 'number') {
+      return;
+    }
+    if (Number.isInteger(cell.value) && typeof numberFormats.integer === 'string') {
+      cell.numFmt = numberFormats.integer;
+      return;
+    }
+    if (typeof numberFormats.decimal === 'string') {
+      cell.numFmt = numberFormats.decimal;
+    }
+  });
+}
+
+function buildExcelFill(theme, fillRef) {
+  const color = resolveThemeColor(theme, fillRef);
+  if (!color) {
+    return undefined;
+  }
+  return {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: toExcelArgb(color) }
+  };
+}
+
+function buildExcelBorder(theme, borderRef, borderStyle) {
+  const color = resolveThemeColor(theme, borderRef);
+  if (!color) {
+    return undefined;
+  }
+  const style = typeof borderStyle === 'string' && borderStyle.trim() ? borderStyle.trim() : 'thin';
+  const edge = { style, color: { argb: toExcelArgb(color) } };
+  return {
+    top: edge,
+    left: edge,
+    bottom: edge,
+    right: edge
+  };
+}
+
+function normalizeRows(rows, options = {}) {
   if (typeof rows === 'string' && rows.trim()) {
     try {
       const parsed = JSON.parse(rows);
@@ -897,68 +1088,321 @@ function normalizeRows(rows) {
   }
   return rows.map((row) => {
     if (Array.isArray(row)) {
-      return row.map(stringifyCell);
+      return row.map((cell) => normalizeRowCell(cell, options));
     }
     if (row && typeof row === 'object') {
       return Object.fromEntries(
-        Object.entries(row).map(([key, value]) => [key, stringifyCell(value)])
+        Object.entries(row).map(([key, value]) => [key, normalizeRowCell(value, options)])
       );
     }
-    return [stringifyCell(row)];
+    return [normalizeRowCell(row, options)];
   });
 }
 
-function buildWordBlocks(blocks) {
+function normalizeRowCell(value, options = {}) {
+  if (options.preserveTypes === true) {
+    if (
+      value === null ||
+      value === undefined ||
+      typeof value === 'string' ||
+      typeof value === 'number' ||
+      typeof value === 'boolean' ||
+      value instanceof Date
+    ) {
+      return typeof value === 'string' ? collapseWhitespace(value) : value;
+    }
+  }
+  return stringifyCell(value);
+}
+
+function buildWordSection(children, wordTemplates) {
+  const section = {
+    properties: buildWordSectionProperties(wordTemplates),
+    children: children.length > 0 ? children : [new Paragraph('')]
+  };
+  const header = buildWordHeader(wordTemplates);
+  const footer = buildWordFooter(wordTemplates);
+  if (header) {
+    section.headers = { default: header };
+  }
+  if (footer) {
+    section.footers = { default: footer };
+  }
+  return section;
+}
+
+function buildWordSectionProperties(wordTemplates) {
+  const page = wordTemplates?.layouts?.document?.page || {};
+  return {
+    page: {
+      margin: {
+        top: convertInchesToTwip(resolveFiniteNumber(page.marginTopInches) || 1),
+        right: convertInchesToTwip(resolveFiniteNumber(page.marginRightInches) || 0.8),
+        bottom: convertInchesToTwip(resolveFiniteNumber(page.marginBottomInches) || 1),
+        left: convertInchesToTwip(resolveFiniteNumber(page.marginLeftInches) || 0.8)
+      }
+    }
+  };
+}
+
+function buildWordHeader(wordTemplates) {
+  const headerLayout = wordTemplates?.layouts?.document?.header || {};
+  if (headerLayout.enabled !== true || headerLayout.showDocumentLabel !== true) {
+    return null;
+  }
+  return new Header({
+    children: [
+      new Paragraph({
+        alignment: resolveWordAlignment(headerLayout.alignment),
+        spacing: { after: 0, before: 0 },
+        children: [
+          buildWordTextRun(
+            wordTemplates?.theme?.documentLabel || 'AisOpsFlow Report',
+            {
+              fontSize: resolveFiniteNumber(headerLayout.fontSize) || 9,
+              bold: true,
+              colorRef: headerLayout.colorRef || 'muted',
+              fontName: headerLayout.fontName || wordTemplates?.theme?.fonts?.body
+            },
+            wordTemplates.theme
+          )
+        ]
+      })
+    ]
+  });
+}
+
+function buildWordFooter(wordTemplates) {
+  const footerLayout = wordTemplates?.layouts?.document?.footer || {};
+  if (footerLayout.enabled !== true) {
+    return null;
+  }
+  const children = [];
+  const prefix = typeof footerLayout.pageNumberPrefix === 'string' ? footerLayout.pageNumberPrefix : 'Page ';
+  if (footerLayout.showPageNumber === true) {
+    children.push(
+      buildWordTextRun(
+        prefix,
+        {
+          fontSize: resolveFiniteNumber(footerLayout.fontSize) || 9,
+          colorRef: footerLayout.colorRef || 'muted',
+          fontName: footerLayout.fontName || wordTemplates?.theme?.fonts?.body
+        },
+        wordTemplates.theme
+      )
+    );
+    children.push(PageNumber.CURRENT);
+  } else if (typeof footerLayout.text === 'string' && footerLayout.text.trim()) {
+    children.push(
+      buildWordTextRun(
+        footerLayout.text.trim(),
+        {
+          fontSize: resolveFiniteNumber(footerLayout.fontSize) || 9,
+          colorRef: footerLayout.colorRef || 'muted',
+          fontName: footerLayout.fontName || wordTemplates?.theme?.fonts?.body
+        },
+        wordTemplates.theme
+      )
+    );
+  }
+  if (children.length === 0) {
+    return null;
+  }
+  return new Footer({
+    children: [
+      new Paragraph({
+        alignment: resolveWordAlignment(footerLayout.alignment),
+        spacing: { after: 0, before: 0 },
+        children
+      })
+    ]
+  });
+}
+
+function buildWordBlocks(blocks, wordTemplates) {
   const children = [];
   for (const block of blocks) {
     const type = typeof block?.type === 'string' ? block.type.trim() : 'paragraph';
     if (type === 'heading') {
       const level = Number.isFinite(Number(block?.level)) ? Number(block.level) : 1;
       children.push(
-        new Paragraph({
-          text: requireText(block?.text, 'word heading text'),
-          heading: resolveHeadingLevel(level)
-        })
+        buildWordHeadingParagraph(requireText(block?.text, 'word heading text'), level, wordTemplates)
       );
       continue;
     }
     if (type === 'bullet_list' || type === 'numbered_list') {
       const items = Array.isArray(block?.items) ? block.items.filter((item) => String(item || '').trim()) : [];
       for (const [itemIndex, item] of items.entries()) {
-        children.push(
-          new Paragraph({
-            text: type === 'numbered_list' ? `${itemIndex + 1}. ${String(item).trim()}` : String(item).trim(),
-            bullet: type === 'bullet_list' ? { level: 0 } : undefined,
-          })
-        );
+        children.push(buildWordListParagraph(String(item).trim(), type, itemIndex, wordTemplates));
       }
       continue;
     }
     if (type === 'table') {
       const rows = Array.isArray(block?.rows) ? block.rows : [];
-      children.push(
-        new Table({
-          width: { size: 100, type: WidthType.PERCENTAGE },
-          rows: rows.map((row) =>
-            new TableRow({
-              children: (Array.isArray(row) ? row : [row]).map((cell) =>
-                new TableCell({
-                  children: [new Paragraph(stringifyCell(cell))]
-                })
-              )
-            })
-          )
-        })
-      );
+      children.push(buildWordTable(rows, wordTemplates));
       continue;
     }
-    children.push(
-      new Paragraph({
-        children: [new TextRun(requireText(block?.text, 'word paragraph text'))]
-      })
-    );
+    children.push(buildWordParagraph(requireText(block?.text, 'word paragraph text'), 'paragraph', wordTemplates));
   }
   return children;
+}
+
+function buildWordHeadingParagraph(text, level, wordTemplates) {
+  const headingLayout = wordTemplates?.layouts?.heading?.[`level${level}`] || {};
+  return new Paragraph({
+    heading: resolveHeadingLevel(level),
+    spacing: buildWordSpacing(headingLayout),
+    children: [buildWordTextRun(text, headingLayout, wordTemplates.theme)]
+  });
+}
+
+function buildWordListParagraph(text, listType, itemIndex, wordTemplates) {
+  const layoutKey = listType === 'bullet_list' ? 'bulletList' : 'numberedList';
+  const listLayout = wordTemplates?.layouts?.[layoutKey] || {};
+  const listText = listType === 'numbered_list' ? `${itemIndex + 1}. ${text}` : text;
+  const paragraph = new Paragraph({
+    bullet: listType === 'bullet_list' ? { level: 0 } : undefined,
+    indent: buildWordListIndent(listLayout),
+    spacing: buildWordSpacing(listLayout),
+    alignment: resolveWordAlignment(listLayout.alignment),
+    children: [buildWordTextRun(listText, listLayout, wordTemplates.theme)]
+  });
+  return paragraph;
+}
+
+function buildWordParagraph(text, layoutKey, wordTemplates) {
+  const layout = wordTemplates?.layouts?.[layoutKey] || {};
+  return new Paragraph({
+    spacing: buildWordSpacing(layout),
+    alignment: resolveWordAlignment(layout.alignment),
+    children: [buildWordTextRun(text, layout, wordTemplates.theme)]
+  });
+}
+
+function buildWordTable(rows, wordTemplates) {
+  const tableLayout = wordTemplates?.layouts?.table || {};
+  const headerLayout = tableLayout.header || {};
+  const bodyLayout = tableLayout.body || {};
+  return new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    borders: buildWordTableBorders(wordTemplates.theme, tableLayout.borderRef || 'line'),
+    rows: rows.map((row, rowIndex) =>
+      new TableRow({
+        tableHeader: rowIndex === 0,
+        children: (Array.isArray(row) ? row : [row]).map((cell) =>
+          new TableCell({
+            shading: rowIndex === 0 ? buildWordShading(wordTemplates.theme, headerLayout.fillRef) : undefined,
+            borders: buildWordTableBorders(wordTemplates.theme, tableLayout.borderRef || 'line'),
+            margins: buildWordCellMargins(tableLayout.cellMarginTwip),
+            children: [
+              new Paragraph({
+                spacing: buildWordSpacing(rowIndex === 0 ? headerLayout : bodyLayout),
+                children: [
+                  buildWordTextRun(
+                    stringifyCell(cell),
+                    rowIndex === 0 ? headerLayout : bodyLayout,
+                    wordTemplates.theme
+                  )
+                ]
+              })
+            ]
+          })
+        )
+      })
+    )
+  });
+}
+
+function buildWordTextRun(text, style, theme) {
+  const color = resolveThemeColor(theme, style?.colorRef);
+  const fontSize = resolveFiniteNumber(style?.fontSize);
+  return new TextRun({
+    text,
+    bold: style?.bold === true,
+    italics: style?.italic === true,
+    color: color || undefined,
+    font: style?.fontName || theme?.fonts?.body || 'Aptos',
+    size: fontSize ? Math.round(fontSize * 2) : undefined
+  });
+}
+
+function buildWordSpacing(style) {
+  const spacing = {};
+  const before = resolveFiniteNumber(style?.spacingBefore);
+  const after = resolveFiniteNumber(style?.spacingAfter);
+  const line = resolveFiniteNumber(style?.line);
+  if (before !== null) {
+    spacing.before = pointsToTwip(before);
+  }
+  if (after !== null) {
+    spacing.after = pointsToTwip(after);
+  }
+  if (line !== null) {
+    spacing.line = Math.round(line * 240);
+  }
+  return spacing;
+}
+
+function buildWordListIndent(style) {
+  const levelIndentInches = Array.isArray(style?.levelIndentInches) ? style.levelIndentInches : [];
+  const left = resolveFiniteNumber(levelIndentInches[0]);
+  const hanging = resolveFiniteNumber(style?.hangingInches);
+  if (left === null && hanging === null) {
+    return undefined;
+  }
+  return {
+    left: convertInchesToTwip(left === null ? 0.5 : left),
+    hanging: convertInchesToTwip(hanging === null ? 0.25 : hanging)
+  };
+}
+
+function buildWordTableBorders(theme, colorRef) {
+  const color = resolveThemeColor(theme, colorRef);
+  if (!color) {
+    return undefined;
+  }
+  const edge = { style: BorderStyle.SINGLE, size: 4, color };
+  return {
+    top: edge,
+    left: edge,
+    bottom: edge,
+    right: edge,
+    insideHorizontal: edge,
+    insideVertical: edge
+  };
+}
+
+function buildWordCellMargins(cellMarginTwip) {
+  const value = resolveFiniteNumber(cellMarginTwip);
+  if (value === null) {
+    return undefined;
+  }
+  return {
+    top: value,
+    bottom: value,
+    left: value,
+    right: value
+  };
+}
+
+function buildWordShading(theme, colorRef) {
+  const color = resolveThemeColor(theme, colorRef);
+  return color ? { fill: color } : undefined;
+}
+
+function resolveWordAlignment(value) {
+  switch (String(value || '').toLowerCase()) {
+    case 'center':
+    case 'middle':
+      return AlignmentType.CENTER;
+    case 'right':
+      return AlignmentType.RIGHT;
+    case 'justify':
+    case 'justified':
+      return AlignmentType.JUSTIFIED;
+    default:
+      return AlignmentType.LEFT;
+  }
 }
 
 function resolveHeadingLevel(level) {
@@ -1197,6 +1641,35 @@ function tryRenderPreferredPair(value, seen) {
   }
 
   return '';
+}
+
+function resolveThemeColor(theme, colorRef) {
+  if (typeof colorRef !== 'string' || !colorRef.trim()) {
+    return '';
+  }
+  const colors = theme?.colors;
+  if (!colors || typeof colors !== 'object') {
+    return '';
+  }
+  const value = colors[colorRef.trim()];
+  return typeof value === 'string' ? value.trim().replace(/^#/, '').toUpperCase() : '';
+}
+
+function toExcelArgb(color) {
+  const normalized = String(color || '').trim().replace(/^#/, '').toUpperCase();
+  if (normalized.length === 8) {
+    return normalized;
+  }
+  return normalized.length === 6 ? `FF${normalized}` : normalized;
+}
+
+function resolveFiniteNumber(value) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : null;
+}
+
+function pointsToTwip(points) {
+  return Math.round(Number(points || 0) * 20);
 }
 
 function fail(message, code = 'runtime_error') {

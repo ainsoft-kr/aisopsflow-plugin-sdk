@@ -1,0 +1,69 @@
+{
+  "document": {
+    "page": {
+      "marginTopInches": 1,
+      "marginRightInches": 0.8,
+      "marginBottomInches": 1,
+      "marginLeftInches": 0.8
+    },
+    "header": {
+      "enabled": true,
+      "showDocumentLabel": true,
+      "alignment": "left",
+      "fontSize": 9,
+      "colorRef": "muted"
+    },
+    "footer": {
+      "enabled": true,
+      "showPageNumber": true,
+      "pageNumberPrefix": "Page ",
+      "alignment": "right",
+      "fontSize": 9,
+      "colorRef": "muted"
+    }
+  },
+  "heading": {
+    "level1": { "fontSize": 18, "bold": true, "colorRef": "accent", "spacingAfter": 14 },
+    "level2": { "fontSize": 14, "bold": true, "colorRef": "ink", "spacingBefore": 8, "spacingAfter": 10 },
+    "level3": { "fontSize": 12, "bold": true, "colorRef": "ink", "spacingBefore": 6, "spacingAfter": 8 },
+    "level4": { "fontSize": 11, "bold": true, "colorRef": "muted", "spacingBefore": 4, "spacingAfter": 6 }
+  },
+  "paragraph": {
+    "fontSize": 11,
+    "colorRef": "ink",
+    "spacingAfter": 8,
+    "line": 1.35
+  },
+  "bulletList": {
+    "fontSize": 11,
+    "colorRef": "ink",
+    "spacingAfter": 4,
+    "line": 1.25,
+    "levelIndentInches": [0.5, 0.9, 1.3],
+    "hangingInches": 0.25
+  },
+  "numberedList": {
+    "fontSize": 11,
+    "colorRef": "ink",
+    "spacingAfter": 4,
+    "line": 1.25,
+    "levelIndentInches": [0.35, 0.75, 1.15],
+    "hangingInches": 0.15
+  },
+  "table": {
+    "borderRef": "line",
+    "cellMarginTwip": 90,
+    "header": {
+      "fontSize": 10,
+      "bold": true,
+      "colorRef": "ink",
+      "fillRef": "tableHeaderFill",
+      "spacingAfter": 0
+    },
+    "body": {
+      "fontSize": 10,
+      "colorRef": "ink",
+      "spacingAfter": 0
+    }
+  }
+}

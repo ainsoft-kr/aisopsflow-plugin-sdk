@@ -1,0 +1,18 @@
+{
+  "workbookLabel": "AisOpsFlow Workbook",
+  "fonts": {
+    "head": "Aptos",
+    "body": "Aptos",
+    "mono": "Cascadia Mono"
+  },
+  "colors": {
+    "sheetBg": "FFFFFF",
+    "bodyText": "1F1A17",
+    "muted": "6F655B",
+    "headerFill": "FDEBD3",
+    "headerText": "1F1A17",
+    "grid": "D8C8B8",
+    "rowAltFill": "FFF9F0",
+    "accent": "D97706"
+  }
+}
